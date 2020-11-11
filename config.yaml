@@ -1,0 +1,23 @@
+device_id: 1
+learning_rate: 0.1
+
+g:
+  dim_latent: 128
+  dim_hidden: 128
+  act: relu
+  norm: batch
+
+d:
+  act: relu
+  norm: none
+
+bs: 64
+lr: 0.004
+num_epochs: 100
+loss_display_freq: 12800
+visual_display_freq: 12800
+eval_display_freq: 12800
+save_freq: 128000
+
+d_iter: 2
+g_iter: 1
