@@ -1,0 +1,6 @@
+device_id: 3
+
+input_size: 10
+hidden_layer_1: 5
+hidden_layer_2: 5
+num_classes: 3
