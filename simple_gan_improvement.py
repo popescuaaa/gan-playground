@@ -23,12 +23,15 @@ class Generator(nn.Module):
         super().__init__()
         __module_list = [
             nn.Linear(cfg['dim_latent'], cfg['dim_hidden'], bias=True),
-            nn.ReLU(),
+            nn.BatchNorm1d(cfg['dim_hidden'], affine=True, track_running_stats=True),
+            nn.ReLU(),  # activation
             nn.Linear(cfg['dim_hidden'], cfg['dim_hidden'] * 2, bias=True),
+            nn.BatchNorm1d(cfg['dim_hidden'] * 2, affine=True, track_running_stats=True),
             nn.ReLU(),
             nn.Linear(cfg['dim_hidden'] * 2, cfg['dim_hidden'] * 4, bias=True),
+            nn.BatchNorm1d(cfg['dim_hidden'] * 4, affine=True, track_running_stats=True),
             nn.ReLU(),
-            nn.Linear(cfg['dim_hidden'] * 2, 28 * 28),  # size of a mnist sample
+            nn.Linear(cfg['dim_hidden'] * 4, 28 * 28, bias=True),  # size of a mnist sample
         ]
 
         # like a running container => in sequence
@@ -47,11 +50,16 @@ class Discriminator(nn.Module):
     def __init__(self, dim_input, dim_output):
         super().__init__()
         __module_list = [
-            nn.Linear(dim_input, dim_input // 2),
+            nn.Linear(dim_input, dim_input // 2, bias=True),
+            nn.BatchNorm1d(dim_input // 2, affine=True, track_running_stats=True),
             nn.ReLU(),
-            nn.Linear(dim_input // 2, dim_input // 4),
+            nn.Linear(dim_input // 2, dim_input // 4, bias=True),
+            nn.BatchNorm1d(dim_input // 4, affine=True, track_running_stats=True),
             nn.ReLU(),
-            nn.Linear(dim_input // 4, dim_output)
+            nn.Linear(dim_input // 4, dim_input // 8, bias=True),
+            nn.BatchNorm1d(dim_input // 8, affine=True, track_running_stats=True),
+            nn.ReLU(),
+            nn.Linear(dim_input // 8, dim_output, bias=True)
 
             # nn.Sigmoid()
             # Must be sigmoid or something that returns a value in [0, 1] to
@@ -132,26 +140,6 @@ def train_system():
 
 """## Training"""
 
-num_epochs = 32
-torch.random.manual_seed(42)
-
-for epoch in range(num_epochs):
-    for batch_idx, (real, _) in enumerate(loader):
-
-        real = real.view(-1, 784)  # reshape -1 => don't know how many rows but should
-        # be 784 columns
-        batch_size = real.shape[0]
-
-        noise = torch.randn(batch_size, config['g']['dim_latent'])
-
-        lossD, lossG = train_system()
-
-        if batch_idx == 500:
-            print(
-                f"Epoch [{epoch}/{num_epochs}] Batch {batch_idx}/{len(loader)} \
-                  Loss D: {lossD:.4f}, loss G: {lossG:.4f}"
-            )
-
 
 def convert_tensor_to_image(t: torch.Tensor):
     t = t.view(-1, 28, 28, 1)
@@ -171,7 +159,23 @@ def create_grid_plot(images):
 
     return fig
 
-def test_g():
-    # The idea is that the generator should receive a latent distribution
-    # TODO: reproduce this tomorrow 30.11.2020
-    z = g.sample(4)
+
+num_epochs = 32
+torch.random.manual_seed(42)
+
+for epoch in range(num_epochs):
+    for batch_idx, (real, _) in enumerate(loader):
+
+        real = real.view(-1, 784)  # reshape -1 => don't know how many rows but should
+        # be 784 columns
+        batch_size = real.shape[0]
+
+        noise = torch.randn(batch_size, config['g']['dim_latent'])
+
+        lossD, lossG = train_system()
+
+        if batch_idx == 0:
+            print(
+                f"Epoch [{epoch}/{num_epochs}] Batch {batch_idx}/{len(loader)} \
+                  Loss D: {lossD:.4f}, loss G: {lossG:.4f}"
+            )
