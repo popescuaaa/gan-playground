@@ -1,15 +1,12 @@
 import torch
 from torch import nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
+
 from Generator import Generator
 from Discriminator import Discriminator
-
-import torch.utils.data as data
-import numpy as np
-import matplotlib.pyplot as plt
 
 
 class GAN:
@@ -17,7 +14,7 @@ class GAN:
         torch.random.manual_seed(42)
         self.dim_latent_g = 128
         self.dim_output_g = 28 * 28
-        self.dist_hidden = 128
+        self.dim_hidden_g = 128
         self.dim_output_d = 1
         self.dim_input_d = 28 * 28
         self.batch_size = 64
@@ -28,15 +25,15 @@ class GAN:
         self.g_train_iter = 1
 
         self.dist_latent = torch.distributions.normal.Normal(loc=0, scale=1)  # Gaussian(0, 1)
-        self.g = Generator(self.g_dist_latent, self.cfg_g)
-        self.d = Discriminator()
+        self.g = Generator(self.dist_latent, self.dim_latent_g, self.dim_hidden_g, self.dim_output_g).cuda()
+        self.d = Discriminator(self.dim_input_d, self.dim_output_d).cuda()
 
         self.transforms = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,)), ]
         )
 
         self.dataset = datasets.MNIST(root="dataset/", transform=self.transforms, download=True)
-        self.loader = DataLoader(self.dataset, batch_size=batch_size, shuffle=True)
+        self.loader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
 
         # TTUR => different learning rates
         self.optimizer_G = optim.Adam(self.g.parameters(), lr=self.learning_rate / 2)
@@ -80,9 +77,9 @@ class GAN:
         for epoch in range(self.num_epochs):
             for batch_idx, (real, _) in enumerate(self.loader):
 
-                real = real.view(-1, 784).cuda()  # reshape -1 => don't know how many rows but should
+                real = real.view(-1, 784).cuda()
                 batch_size = real.shape[0]
-                noise = self.g.generate_visual_sample(batch_size).cuda()
+                noise = self.g.sample(batch_size).cuda()
 
                 for _ in range(self.g_train_iter):
                     loss_g = self.train_generator(noise)
