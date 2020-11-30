@@ -40,12 +40,6 @@ class Generator(nn.Module):
     def forward(self, x):
         return self.__net(x)
 
-    def generate_visual_sample(self, num_samples=4):
-        z = self.sample(num_samples)
-        x = self.forward(z)
-        return x
-
-
 class Discriminator(nn.Module):
     def __init__(self, dim_input, dim_output):
         super().__init__()
@@ -93,6 +87,8 @@ optimizer_D = optim.Adam(d.parameters(), lr=config['learning_rate'] * 2)
 
 criterion = nn.BCEWithLogitsLoss()  # This changed a little bit some loss values
 
+
+# max log(D(x)) + log(1 - D(G(z)))
 def trainD(real, noise):
     fake_data = g(noise)
     real_data = real
@@ -112,6 +108,7 @@ def trainD(real, noise):
     return loss
 
 
+#  min log(1 - D(G(z))) <-> max log(D(G(z))
 def trainG(noise):
     fake_data = g(noise)
     output = d(fake_data).view(-1)
@@ -137,29 +134,6 @@ def train_system(noise, real):
 
     return loss_d, loss_g
 
-
-"""## Training"""
-
-
-def convert_tensor_to_image(t: torch.Tensor):
-    t = t.view(-1, 28, 28, 1)
-    t = t.numpy()
-    return t
-
-
-def create_grid_plot(images):
-    fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(56, 56))
-    images = convert_tensor_to_image(images)[:4 * 4]
-
-    for idx, image in enumerate(images):
-        r = idx // 4
-        c = idx % 4
-        axes[r, c].axis('off')
-        axes[r, c].imshow(image, cmap='grey', aspect='auto')
-
-    return fig
-
-
 num_epochs = 32
 torch.random.manual_seed(42)
 
@@ -179,4 +153,3 @@ for epoch in range(num_epochs):
                 f"Epoch [{epoch}/{num_epochs}] Batch {batch_idx}/{len(loader)} \
                   Loss D: {lossD:.4f}, loss G: {lossG:.4f}"
             )
-            print('Result in epoch: {}'.format(epoch))

@@ -59,7 +59,7 @@ Dataset + sampler
 """
 
 # load yaml data
-with open('simple_network.yaml', 'r') as f:
+with open('../simple_gan/simple_network.yaml', 'r') as f:
     config = yaml.load(f)
 
 train_ds, test_ds = IrisDataset(), IrisDataset()
