@@ -1,0 +1,3 @@
+# With normalization
+
+# With different learning rates

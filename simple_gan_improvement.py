@@ -76,8 +76,8 @@ env_learning_rate = config['learning_rate']
 
 g_cfg = config['g']
 
-g = Generator(g_cfg)
-d = Discriminator(28 * 28, 1)  # we must generate a score
+g = Generator(g_cfg).cuda()
+d = Discriminator(28 * 28, 1).cuda()  # we must generate a score
 
 batch_size = 32
 transforms = transforms.Compose(
@@ -87,11 +87,11 @@ transforms = transforms.Compose(
 dataset = datasets.MNIST(root="dataset/", transform=transforms, download=True)
 loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-optimizer_G = optim.Adam(g.parameters(), lr=config['learning_rate'])
-optimizer_D = optim.Adam(d.parameters(), lr=config['learning_rate'])
+# TTUR => different learning rates
+optimizer_G = optim.Adam(g.parameters(), lr=config['learning_rate'] / 2)
+optimizer_D = optim.Adam(d.parameters(), lr=config['learning_rate'] * 2)
 
 criterion = nn.BCEWithLogitsLoss()  # This changed a little bit some loss values
-
 
 def trainD(real, noise):
     fake_data = g(noise)
@@ -100,10 +100,10 @@ def trainD(real, noise):
     d_real = d(real_data).view(-1)
     d_fake = d(fake_data).view(-1)
 
-    loss_fake = criterion(d_fake, torch.zeros_like(d_fake))
-    loss_real = criterion(d_real, torch.ones_like(d_real))
+    loss_fake = criterion(d_fake, torch.zeros_like(d_fake)).cuda()
+    loss_real = criterion(d_real, torch.ones_like(d_real)).cuda()
 
-    loss = 0.5 * loss_fake + 0.5 * loss_fake
+    loss = 0.5 * loss_fake + 0.5 * loss_real
     d.zero_grad()
 
     loss.backward()
@@ -116,7 +116,7 @@ def trainG(noise):
     fake_data = g(noise)
     output = d(fake_data).view(-1)
 
-    loss = criterion(output, torch.ones_like(output))
+    loss = criterion(output, torch.ones_like(output)).cuda()
     g.zero_grad()
 
     loss.backward()
@@ -125,7 +125,7 @@ def trainG(noise):
     return loss
 
 
-def train_system():
+def train_system(noise, real):
     d_steps = 10
     g_steps = 10
 
@@ -166,16 +166,17 @@ torch.random.manual_seed(42)
 for epoch in range(num_epochs):
     for batch_idx, (real, _) in enumerate(loader):
 
-        real = real.view(-1, 784)  # reshape -1 => don't know how many rows but should
+        real = real.view(-1, 784).cuda()  # reshape -1 => don't know how many rows but should
         # be 784 columns
         batch_size = real.shape[0]
 
-        noise = torch.randn(batch_size, config['g']['dim_latent'])
+        noise = torch.randn(batch_size, config['g']['dim_latent']).cuda()
 
-        lossD, lossG = train_system()
+        lossD, lossG = train_system(noise, real)
 
         if batch_idx == 0:
             print(
                 f"Epoch [{epoch}/{num_epochs}] Batch {batch_idx}/{len(loader)} \
                   Loss D: {lossD:.4f}, loss G: {lossG:.4f}"
             )
+            print('Result in epoch: {}'.format(epoch))
