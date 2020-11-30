@@ -19,7 +19,7 @@ class GAN:
         self.dim_input_d = 28 * 28
         self.batch_size = 64
         self.learning_rate = 0.004
-        self.num_epochs = 32
+        self.num_epochs = 100
 
         self.d_train_iter = 2  # This is possible to have a relation with TTUR
         self.g_train_iter = 1
