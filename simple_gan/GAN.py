@@ -7,6 +7,9 @@ import torchvision.transforms as transforms
 
 from Generator import Generator
 from Discriminator import Discriminator
+from utils import *
+
+import matplotlib.pyplot as plt
 
 
 class GAN:
@@ -92,3 +95,8 @@ class GAN:
                         f"Epoch [{epoch}/{self.num_epochs}] Batch {batch_idx}/{len(self.loader)} \
                           Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
                     )
+
+                fake_data = self.g.generate_visual_sample(self.batch_size).detach()
+                logits = self.d(fake_data)
+                fake_grid = create_grid_plot(fake_data, logits)
+                plt.show()
