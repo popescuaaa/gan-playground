@@ -5,6 +5,7 @@
       <sourceFolder url="file://$MODULE_DIR$/simple_gan" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dataset" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/colab" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/conditional_gan" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

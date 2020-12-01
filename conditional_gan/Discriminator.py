@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 
 # TODO: add configuration for norm and activation
 
@@ -13,6 +14,9 @@ class Discriminator(nn.Module):
         super().__init__()
         self.dim_input = dim_input
         self.dim_output = dim_output
+
+        # Condition
+        self.label_emb = nn.Embedding(10, 10)
 
         __module_list = [
             nn.Linear(self.dim_input, self.dim_input // 2, bias=True),
@@ -29,5 +33,9 @@ class Discriminator(nn.Module):
 
         self.__net = nn.Sequential(*__module_list)
 
-    def forward(self, x):
-        return self.__net(x)
+    def forward(self, x, labels):
+        # Condition
+        c = self.label_emb(labels)
+        x = torch.cat([x, c], 1)  # list of vectors after one dimension
+        out = self.__net(x)
+        return out.squeeze()
