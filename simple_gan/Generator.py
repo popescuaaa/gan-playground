@@ -45,6 +45,6 @@ class Generator(nn.Module):
         return z
 
     def generate_visual_sample(self, num_samples):
-        z = self.sample(num_samples)
+        z = self.sample(num_samples).cuda()
         x = self.forward(z)
         return x
