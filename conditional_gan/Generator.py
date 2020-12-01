@@ -22,6 +22,9 @@ class Generator(nn.Module):
         self.dim_hidden = dim_hidden
         self.dim_output = dim_output
 
+        # Condition
+        self.label_emb = nn.Embedding(10, 10)
+
         __module_list = [
             nn.Linear(self.dim_latent, self.dim_hidden, bias=True),
             nn.BatchNorm1d(self.dim_hidden, affine=True, track_running_stats=True),
@@ -37,14 +40,18 @@ class Generator(nn.Module):
 
         self.__net = nn.Sequential(*__module_list)
 
-    def forward(self, z):
-        return self.__net(z)
+    def forward(self, z, labels):
+        # Condition
+        c = self.label_emb(labels)
+        _z = torch.cat([z, c], 1)
+        out = self.__net(_z)
+        return out
 
     def sample(self, num_samples) -> torch.Tensor:
         z = self.dist_latent.sample(sample_shape=(num_samples, self.dim_latent))
         return z
 
-    def generate_visual_sample(self, num_samples):
+    def generate_visual_sample(self, num_samples, labels):
         z = self.sample(num_samples).cuda()
-        x = self.forward(z)
+        x = self.forward(z, labels)
         return x
