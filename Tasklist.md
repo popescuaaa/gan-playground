@@ -1,6 +1,12 @@
 - [X] Make an organized version
 - [X] Show generator examples
     - [] plot loss for G and D
-- [] CGAN current framework in new branch 
+- [] CGAN current framework in new branch
 - [] CGAN visual samples
+    - [] plot loss for G and D
+- [] custom loss function
+ ---
 - [] Time GAN in new Branch
+    - [] get data for financial market and plot them
+    - [] implement timeGAN
+    - [] plot timeGAN results
