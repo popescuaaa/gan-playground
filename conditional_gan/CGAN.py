@@ -22,7 +22,7 @@ class GAN:
         self.dim_input_d = 28 * 28
         self.batch_size = 64
         self.learning_rate = 1e-4
-        self.num_epochs = 100
+        self.num_epochs = 50
         self.display_freq = 50
 
         self.d_train_iter = 2  # This is possible to have a relation with TTsUR
@@ -50,6 +50,8 @@ class GAN:
     # n = noise
     # l = labels
     def train_discriminator(self, r, n, l):
+        self.optimizer_D.zero_grad()
+
         fake_data = self.g(n, l)
         real_data = r
 
@@ -60,27 +62,34 @@ class GAN:
         loss_real = self.criterion(d_real, torch.ones_like(d_real)).cuda()
 
         loss = 0.5 * loss_fake + 0.5 * loss_real
-        self.d.zero_grad()
 
         loss.backward()
         self.optimizer_D.step()
 
         return loss
 
-    #  min log(1 - D(G(z))) <-> max log(D(G(z))
-    # n = noise
-    # l = labels
+    # min log(1 - D(G(z))) <-> max log(D(G(z))
+    # n = noise => cuda
+    # l = labels => cuda
     def train_generator(self, n, l):
+        self.optimizer_G.zero_grad()
+
         fake_data = self.g(n, l)
         output = self.d(fake_data, l).view(-1)
 
         loss = self.criterion(output, torch.ones_like(output)).cuda()
-        self.g.zero_grad()
 
         loss.backward()
         self.optimizer_G.step()
 
         return loss
+
+    def generate_digit(self, digit: int):
+        z = self.g.sample(10).cuda()
+        label = torch.LongTensor([digit] * 10).cuda()
+        img = self.g(z, label).data.cpu()
+        img = 0.5 * img + 0.5
+        return transforms.ToPILImage()(img)
 
     def train_system(self):
         generator_losses = []
@@ -104,14 +113,9 @@ class GAN:
                         f"Epoch [{epoch}/{self.num_epochs}] Batch {batch_idx}/{len(self.loader)} \
                           Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
                     )
+
                     generator_losses.append(loss_g)
                     discriminator_losses.append(loss_d)
-
-                # if epoch % self.display_freq == 0:
-                # fake_data = self.g.generate_visual_sample(self.batch_size, labels).detach()
-                # logits = self.d(fake_data, labels)
-                # fake_grid = create_grid_plot(fake_data, logits)
-                # plt.show()
 
         fig, ax = plt.subplots()
         ax.plot([i for i in range(len(generator_losses))], generator_losses, color='b')
@@ -119,3 +123,10 @@ class GAN:
         ax.grid(linestyle='-', linewidth='0.5')
 
         plt.show()
+
+        self.generate_digit(8)
+
+        # fake_data = self.g.generate_visual_sample(self.batch_size, labels).detach()
+        # logits = self.d(fake_data, labels)
+        # fake_grid = create_grid_plot(fake_data, logits)
+        # plt.show()
