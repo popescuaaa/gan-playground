@@ -21,8 +21,9 @@ class GAN:
         self.dim_output_d = 1
         self.dim_input_d = 28 * 28
         self.batch_size = 64
-        self.learning_rate = 0.004
+        self.learning_rate = 1e-4
         self.num_epochs = 100
+        self.display_freq = 50
 
         self.d_train_iter = 2  # This is possible to have a relation with TTsUR
         self.g_train_iter = 1
@@ -82,6 +83,9 @@ class GAN:
         return loss
 
     def train_system(self):
+        generator_losses = []
+        discriminator_losses = []
+
         for epoch in range(self.num_epochs):
             for batch_idx, (real, labels) in enumerate(self.loader):
                 real = real.view(-1, 784).cuda()
@@ -100,8 +104,18 @@ class GAN:
                         f"Epoch [{epoch}/{self.num_epochs}] Batch {batch_idx}/{len(self.loader)} \
                           Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
                     )
+                    generator_losses.append(loss_g)
+                    discriminator_losses.append(loss_d)
 
-                fake_data = self.g.generate_visual_sample(self.batch_size, labels).detach()
-                logits = self.d(fake_data, labels)
-                fake_grid = create_grid_plot(fake_data, logits)
-                plt.show()
+                # if epoch % self.display_freq == 0:
+                # fake_data = self.g.generate_visual_sample(self.batch_size, labels).detach()
+                # logits = self.d(fake_data, labels)
+                # fake_grid = create_grid_plot(fake_data, logits)
+                # plt.show()
+
+        fig, ax = plt.subplots()
+        ax.plot([i for i in range(len(generator_losses))], generator_losses, color='b')
+        ax.plot([j for j in range(len(discriminator_losses))], discriminator_losses, color='r')
+        ax.grid(linestyle='-', linewidth='0.5')
+
+        plt.show()

@@ -14,12 +14,13 @@ class Discriminator(nn.Module):
         super().__init__()
         self.dim_input = dim_input
         self.dim_output = dim_output
+        self.num_labels = 10
 
         # Condition
-        self.label_emb = nn.Embedding(10, 10)
+        self.label_emb = nn.Embedding(self.num_labels, self.num_labels)
 
         __module_list = [
-            nn.Linear(self.dim_input, self.dim_input // 2, bias=True),
+            nn.Linear(self.dim_input + self.num_labels, self.dim_input // 2, bias=True),
             nn.BatchNorm1d(self.dim_input // 2, affine=True, track_running_stats=True),
             nn.ReLU(),
             nn.Linear(self.dim_input // 2, self.dim_input // 4, bias=True),
@@ -36,6 +37,6 @@ class Discriminator(nn.Module):
     def forward(self, x, labels):
         # Condition
         c = self.label_emb(labels)
-        x = torch.cat([x, c], 1)  # list of vectors after one dimension
+        x = torch.cat([x, c], 1)  # stack tensors
         out = self.__net(x)
         return out.squeeze()

@@ -22,11 +22,12 @@ class Generator(nn.Module):
         self.dim_hidden = dim_hidden
         self.dim_output = dim_output
 
+        self.num_labels = 10
         # Condition
-        self.label_emb = nn.Embedding(10, 10)
+        self.label_emb = nn.Embedding(self.num_labels, self.num_labels)
 
         __module_list = [
-            nn.Linear(self.dim_latent, self.dim_hidden, bias=True),
+            nn.Linear(self.dim_latent + self.num_labels, self.dim_hidden, bias=True),
             nn.BatchNorm1d(self.dim_hidden, affine=True, track_running_stats=True),
             nn.ReLU(),
             nn.Linear(self.dim_hidden, self.dim_hidden * 2, bias=True),
@@ -43,7 +44,7 @@ class Generator(nn.Module):
     def forward(self, z, labels):
         # Condition
         c = self.label_emb(labels)
-        _z = torch.cat([z, c], 1)
+        _z = torch.cat([z, c], 1)  # is like stacking two tensors one over another
         out = self.__net(_z)
         return out
 
