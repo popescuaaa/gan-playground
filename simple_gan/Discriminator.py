@@ -16,13 +16,16 @@ class Discriminator(nn.Module):
 
         __module_list = [
             nn.Linear(self.dim_input, self.dim_input // 2, bias=True),
-            nn.BatchNorm1d(self.dim_input // 2, affine=True, track_running_stats=True),
+            # nn.BatchNorm1d(self.dim_input // 2, affine=True, track_running_stats=True),
+            nn.Dropout(0.3),
             nn.ReLU(),
             nn.Linear(self.dim_input // 2, self.dim_input // 4, bias=True),
-            nn.BatchNorm1d(self.dim_input // 4, affine=True, track_running_stats=True),
+            # nn.BatchNorm1d(self.dim_input // 4, affine=True, track_running_stats=True),
+            nn.Dropout(0.3),
             nn.ReLU(),
             nn.Linear(self.dim_input // 4, self.dim_input // 8, bias=True),
-            nn.BatchNorm1d(self.dim_input // 8, affine=True, track_running_stats=True),
+            # nn.BatchNorm1d(self.dim_input // 8, affine=True, track_running_stats=True),
+            nn.Dropout(0.3),
             nn.ReLU(),
             nn.Linear(self.dim_input // 8, self.dim_output, bias=True)
         ]

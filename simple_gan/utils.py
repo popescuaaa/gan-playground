@@ -23,7 +23,7 @@ def convert_tensor_to_image(x: torch.Tensor) -> np.ndarray:
 
 
 def create_grid_plot(images, labels) -> plt.Figure:
-    fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(56, 56))
+    fig, axes = plt.subplots(nrows=4, ncols=4, figsize=(10, 10))
 
     images = convert_tensor_to_image(images)[:4 * 4]
     values = convert_score_to_label(labels)
@@ -32,6 +32,6 @@ def create_grid_plot(images, labels) -> plt.Figure:
         row = idx // 4
         col = idx % 4
         axes[row, col].axis("off")
-        axes[row, col].set_title(str(values[idx].item()), size=72)
+        axes[row, col].set_title(str(values[idx].item()), size=10)
         axes[row, col].imshow(image.reshape(28, 28), cmap="gray", aspect="auto")
     return fig
