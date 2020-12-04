@@ -46,14 +46,18 @@ class GAN:
 
     # max log(D(x)) + log(1 - D(G(z)))
     def train_discriminator(self, r, n):
+        self.optimizer_D.zero_grad()
+        self.d.requires_grad_(True)
+        self.g.requires_grad_(False)
+
         fake_data = self.g(n)
         real_data = r
 
         d_real = self.d(real_data).view(-1)
         d_fake = self.d(fake_data).view(-1)
 
-        loss_fake = self.criterion(d_fake, torch.zeros_like(d_fake)).cuda()
-        loss_real = self.criterion(d_real, torch.ones_like(d_real)).cuda()
+        loss_fake = self.criterion(d_fake, torch.zeros_like(d_fake))
+        loss_real = self.criterion(d_real, torch.ones_like(d_real))
 
         loss = 0.5 * loss_fake + 0.5 * loss_real
         self.d.zero_grad()
@@ -65,10 +69,15 @@ class GAN:
 
     #  min log(1 - D(G(z))) <-> max log(D(G(z))
     def train_generator(self, n):
+        self.optimizer_G.zero_grad()
+        self.d.requires_grad_(False)
+        self.g.requires_grad_(True)
+
         fake_data = self.g(n)
         output = self.d(fake_data).view(-1)
 
-        loss = self.criterion(output, torch.ones_like(output)).cuda()
+        # loss = self.criterion(output, torch.ones_like(output)).cuda()
+        loss = (-1) * output.mean()
         self.g.zero_grad()
 
         loss.backward()

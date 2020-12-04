@@ -32,7 +32,8 @@ class Generator(nn.Module):
             nn.Linear(self.dim_hidden * 2, self.dim_hidden * 4, bias=True),
             nn.BatchNorm1d(self.dim_hidden * 4, affine=True, track_running_stats=True),
             nn.ReLU(),
-            nn.Linear(self.dim_hidden * 4, self.dim_output, bias=True)
+            nn.Linear(self.dim_hidden * 4, self.dim_output, bias=True),
+            nn.Sigmoid()  # all data in [0, 1]
         ]
 
         self.__net = nn.Sequential(*__module_list)
