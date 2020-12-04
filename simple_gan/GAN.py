@@ -21,7 +21,7 @@ class GAN:
         self.dim_output_d = 1
         self.dim_input_d = 28 * 28
         self.batch_size = 64
-        self.learning_rate = 0.004
+        self.learning_rate = 1e-4
         self.num_epochs = 100
 
         self.d_train_iter = 2  # This is possible to have a relation with TTUR
@@ -32,7 +32,7 @@ class GAN:
         self.d = Discriminator(self.dim_input_d, self.dim_output_d).cuda()
 
         self.transforms = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,)), ]
+            [transforms.ToTensor()]
         )
 
         self.dataset = datasets.MNIST(root="dataset/", transform=self.transforms, download=True)
@@ -50,7 +50,6 @@ class GAN:
         self.d.train()
         self.d.requires_grad_(True)
         self.g.requires_grad_(False)
-
 
         fake_data = self.g(n)
         real_data = r
@@ -75,7 +74,6 @@ class GAN:
         self.g.train()
         self.d.requires_grad_(False)
         self.g.requires_grad_(True)
-
 
         fake_data = self.g(n)
         output = self.d(fake_data).view(-1)

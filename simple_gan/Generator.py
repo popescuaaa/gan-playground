@@ -23,17 +23,17 @@ class Generator(nn.Module):
         self.dim_output = dim_output
 
         __module_list = [
-            nn.Linear(self.dim_latent, self.dim_hidden, bias=True),
-            nn.BatchNorm1d(self.dim_hidden, affine=True, track_running_stats=True),
-            nn.ReLU(),
-            nn.Linear(self.dim_hidden, self.dim_hidden * 2, bias=True),
-            nn.BatchNorm1d(self.dim_hidden * 2, affine=True, track_running_stats=True),
+            nn.Linear(self.dim_latent, self.dim_hidden * 2, bias=True),
+            nn.BatchNorm1d(2 * self.dim_hidden, affine=True, track_running_stats=True),
             nn.ReLU(),
             nn.Linear(self.dim_hidden * 2, self.dim_hidden * 4, bias=True),
             nn.BatchNorm1d(self.dim_hidden * 4, affine=True, track_running_stats=True),
             nn.ReLU(),
-            nn.Linear(self.dim_hidden * 4, self.dim_output, bias=True),
-            nn.Sigmoid()  # all data in [0, 1]
+            nn.Linear(self.dim_hidden * 4, self.dim_hidden * 8, bias=True),
+            nn.BatchNorm1d(self.dim_hidden * 8, affine=True, track_running_stats=True),
+            nn.ReLU(),
+            nn.Linear(self.dim_hidden * 8, self.dim_output, bias=True),
+            nn.Tanh()  # all data in [0, 1]
         ]
 
         self.__net = nn.Sequential(*__module_list)
