@@ -1,10 +1,14 @@
 - [X] Make an organized version
 - [X] Show generator examples
-    - [] plot loss for G and D
-- [] CGAN current framework in new branch
+    - [X] plot loss for G and D
+    - [] save a picture with last result
+- [X] CGAN current framework in new branch
+    - [] improve performance for CGAN
 - [] CGAN visual samples
     - [] plot loss for G and D
+    - [] CGAN with conv nets
 - [] custom loss function
+- [] make yaml config with all stable version parameters
  ---
 - [] Time GAN in new Branch
     - [] get data for financial market and plot them
