@@ -12,6 +12,12 @@ from utils import *
 import matplotlib.pyplot as plt
 
 
+def make_one_hot(target: int, num_classes=10):
+    target = torch.ones(size=(10,)) * target
+    target = (target == torch.arange(num_classes))
+    return target.type(torch.FloatTensor)
+
+
 class GAN:
     def __init__(self):
         torch.random.manual_seed(42)
@@ -51,6 +57,9 @@ class GAN:
     # l = labels
     def train_discriminator(self, r, n, l):
         self.optimizer_D.zero_grad()
+        self.d.train()
+        self.d.requires_grad_(True)
+        self.g.requires_grad_(False)
 
         fake_data = self.g(n, l)
         real_data = r
@@ -58,8 +67,8 @@ class GAN:
         d_real = self.d(real_data, l).view(-1)
         d_fake = self.d(fake_data, l).view(-1)
 
-        loss_fake = self.criterion(d_fake, torch.zeros_like(d_fake)).cuda()
-        loss_real = self.criterion(d_real, torch.ones_like(d_real)).cuda()
+        loss_fake = self.criterion(d_fake, torch.zeros_like(d_fake))
+        loss_real = self.criterion(d_real, torch.ones_like(d_real))
 
         loss = 0.5 * loss_fake + 0.5 * loss_real
 
@@ -73,60 +82,44 @@ class GAN:
     # l = labels => cuda
     def train_generator(self, n, l):
         self.optimizer_G.zero_grad()
+        self.g.train()
+        self.d.requires_grad_(False)
+        self.g.requires_grad_(True)
 
         fake_data = self.g(n, l)
         output = self.d(fake_data, l).view(-1)
 
-        loss = self.criterion(output, torch.ones_like(output)).cuda()
-
+        loss = -1 * output.mean()
         loss.backward()
         self.optimizer_G.step()
 
         return loss
 
-    def generate_digit(self, digit: int):
-        z = self.g.sample(10).cuda()
-        label = torch.LongTensor([digit] * 10).cuda()
-        img = self.g(z, label).data.cpu()
-        img = 0.5 * img + 0.5
-        return transforms.ToPILImage()(img)
-
     def train_system(self):
-        generator_losses = []
-        discriminator_losses = []
-
         for epoch in range(self.num_epochs):
             for batch_idx, (real, labels) in enumerate(self.loader):
                 real = real.view(-1, 784).cuda()
-                labels = labels.cuda()
-                batch_size = real.shape[0]
-                noise = self.g.sample(batch_size).cuda()  # sample from the latent distribution of the Generator
+                c = torch.nn.functional.one_hot(labels).cuda()
+                if c.shape[1] == 10:  # is 9 somehow and somewhere in the process
+                    batch_size = real.shape[0]
+                    noise = self.g.sample(batch_size).cuda()
 
-                for _ in range(self.g_train_iter):
-                    loss_g = self.train_generator(n=noise, l=labels)
+                    loss_g = self.train_generator(n=noise, l=c)
 
-                for _ in range(self.d_train_iter):
-                    loss_d = self.train_discriminator(r=real, n=noise, l=labels)
+                    loss_d = self.train_discriminator(r=real, n=noise, l=c)
 
-                if batch_idx == 0:
-                    print(
-                        f"Epoch [{epoch}/{self.num_epochs}] Batch {batch_idx}/{len(self.loader)} \
-                          Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
-                    )
+                    if batch_idx == 0:
+                        print(
+                            f"Epoch [{epoch}/{self.num_epochs}] Batch {batch_idx}/{len(self.loader)} \
+                              Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
+                        )
 
-                    generator_losses.append(loss_g)
-                    discriminator_losses.append(loss_d)
+                        _c = make_one_hot(8)
+                        stack = _c
+                        for i in range(batch_size):
+                            _c = torch.cat([_c, stack], 1)
 
-        fig, ax = plt.subplots()
-        ax.plot([i for i in range(len(generator_losses))], generator_losses, color='b')
-        ax.plot([j for j in range(len(discriminator_losses))], discriminator_losses, color='r')
-        ax.grid(linestyle='-', linewidth='0.5')
-
-        plt.show()
-
-        self.generate_digit(8)
-
-        # fake_data = self.g.generate_visual_sample(self.batch_size, labels).detach()
-        # logits = self.d(fake_data, labels)
-        # fake_grid = create_grid_plot(fake_data, logits)
-        # plt.show()
+                        fake_data = self.g.generate_visual_sample(self.batch_size, _c).detach()
+                        logits = self.d(fake_data)
+                        fake_grid = create_grid_plot(fake_data, logits)
+                        plt.show()

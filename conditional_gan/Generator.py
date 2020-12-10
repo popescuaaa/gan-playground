@@ -21,30 +21,26 @@ class Generator(nn.Module):
         self.dim_latent = dim_latent
         self.dim_hidden = dim_hidden
         self.dim_output = dim_output
-
         self.num_labels = 10
-        # Condition
-        self.label_emb = nn.Embedding(self.num_labels, self.num_labels)
 
         __module_list = [
-            nn.Linear(self.dim_latent + self.num_labels, self.dim_hidden, bias=True),
-            nn.BatchNorm1d(self.dim_hidden, affine=True, track_running_stats=True),
-            nn.ReLU(),
-            nn.Linear(self.dim_hidden, self.dim_hidden * 2, bias=True),
+            nn.Linear(self.dim_latent + self.num_labels, self.dim_hidden * 2, bias=True),
             nn.BatchNorm1d(self.dim_hidden * 2, affine=True, track_running_stats=True),
             nn.ReLU(),
             nn.Linear(self.dim_hidden * 2, self.dim_hidden * 4, bias=True),
             nn.BatchNorm1d(self.dim_hidden * 4, affine=True, track_running_stats=True),
             nn.ReLU(),
-            nn.Linear(self.dim_hidden * 4, self.dim_output, bias=True)
+            nn.Linear(self.dim_hidden * 4, self.dim_hidden * 8, bias=True),
+            nn.BatchNorm1d(self.dim_hidden * 8, affine=True, track_running_stats=True),
+            nn.ReLU(),
+            nn.Linear(self.dim_hidden * 8, self.dim_output, bias=True),
+            nn.Tanh()
         ]
 
         self.__net = nn.Sequential(*__module_list)
 
-    def forward(self, z, labels):
-        # Condition
-        c = self.label_emb(labels)
-        _z = torch.cat([z, c], 1)  # is like stacking two tensors one over another
+    def forward(self, z, c):
+        _z = torch.cat([z, c], 1)
         out = self.__net(_z)
         return out
 
@@ -52,7 +48,7 @@ class Generator(nn.Module):
         z = self.dist_latent.sample(sample_shape=(num_samples, self.dim_latent))
         return z
 
-    def generate_visual_sample(self, num_samples, labels):
+    def generate_visual_sample(self, num_samples, c):
         z = self.sample(num_samples).cuda()
-        x = self.forward(z, labels)
+        x = self.forward(z, c)
         return x
