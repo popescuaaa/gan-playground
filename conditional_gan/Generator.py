@@ -21,10 +21,11 @@ class Generator(nn.Module):
         self.dim_latent = dim_latent
         self.dim_hidden = dim_hidden
         self.dim_output = dim_output
+        self.num_labels = 10
 
         __module_list = [
-            nn.Linear(self.dim_latent, self.dim_hidden * 2, bias=True),
-            nn.BatchNorm1d(2 * self.dim_hidden, affine=True, track_running_stats=True),
+            nn.Linear(self.dim_latent + self.num_labels, self.dim_hidden * 2, bias=True),
+            nn.BatchNorm1d(self.dim_hidden * 2, affine=True, track_running_stats=True),
             nn.ReLU(),
             nn.Linear(self.dim_hidden * 2, self.dim_hidden * 4, bias=True),
             nn.BatchNorm1d(self.dim_hidden * 4, affine=True, track_running_stats=True),
@@ -33,19 +34,21 @@ class Generator(nn.Module):
             nn.BatchNorm1d(self.dim_hidden * 8, affine=True, track_running_stats=True),
             nn.ReLU(),
             nn.Linear(self.dim_hidden * 8, self.dim_output, bias=True),
-            nn.Tanh()  # all data in [0, 1]
+            nn.Tanh()
         ]
 
         self.__net = nn.Sequential(*__module_list)
 
-    def forward(self, z):
-        return self.__net(z)
+    def forward(self, z, c):
+        _z = torch.cat([z, c], 1)
+        out = self.__net(_z)
+        return out
 
     def sample(self, num_samples) -> torch.Tensor:
         z = self.dist_latent.sample(sample_shape=(num_samples, self.dim_latent))
         return z
 
-    def generate_visual_sample(self, num_samples):
+    def generate_visual_sample(self, num_samples, c):
         z = self.sample(num_samples).cuda()
-        x = self.forward(z)
+        x = self.forward(z, c)
         return x
