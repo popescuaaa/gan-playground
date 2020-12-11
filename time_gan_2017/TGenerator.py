@@ -27,6 +27,8 @@ class LSTMGenerator(nn.Module):
         self.lstm = nn.LSTM(dim_latent, dim_hidden, layers_num, batch_first=True)
         self.linear = nn.Sequential(nn.Linear(dim_hidden, dim_output), nn.Tanh())
 
+        # tanh => increase with a value form [-1, 1]
+
     def forward(self, x):
         batch_size, seq_len = x.size(0), x.size(1)
 
