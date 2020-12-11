@@ -5,28 +5,24 @@ import torch
 # noinspection DuplicatedCode
 class LSTMDiscriminator(nn.Module):
     """An LSTM based discriminator. It expects a sequence as input and outputs a probability for each element.
-    Args:
-        in_dim: Input noise dimensionality
-        n_layers: number of lstm layers
-        hidden_dim: dimensionality of the hidden layer of lstms
-    Inputs: sequence of shape (batch_size, seq_len, in_dim)
-    Output: sequence of shape (batch_size, seq_len, 1)
     """
 
-    def __init__(self, in_dim, n_layers=1, hidden_dim=256):
+    def __init__(self, dim_input, num_layers=1, dim_hidden=256):
         super().__init__()
-        self.n_layers = n_layers
-        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.dim_hidden = dim_hidden
+        self.dim_input = dim_input
 
-        self.lstm = nn.LSTM(in_dim, hidden_dim, n_layers, batch_first=True)
-        self.linear = nn.Sequential(nn.Linear(hidden_dim, 1), nn.Sigmoid())
+        self.lstm = nn.LSTM(self.dim_input, self.dim_hidden, self.num_layers, batch_first=True)
+        self.linear = nn.Sequential(nn.Linear(self.dim_hidden, 1), nn.Sigmoid())
 
-    def forward(self, input):
-        batch_size, seq_len = input.size(0), input.size(1)
-        h_0 = torch.zeros(self.n_layers, batch_size, self.hidden_dim)
-        c_0 = torch.zeros(self.n_layers, batch_size, self.hidden_dim)
+    def forward(self, x):
+        batch_size, seq_len = x.size(0), x.size(1)
 
-        recurrent_features, _ = self.lstm(input, (h_0, c_0))
-        outputs = self.linear(recurrent_features.contiguous().view(batch_size * seq_len, self.hidden_dim))
+        h_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden)
+        c_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden)
+
+        recurrent_features, _ = self.lstm(x, (h_0, c_0))
+        outputs = self.linear(recurrent_features.contiguous().view(batch_size * seq_len, self.dim_hidden))
         outputs = outputs.view(batch_size, seq_len, 1)
         return outputs
