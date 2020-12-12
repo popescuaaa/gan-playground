@@ -6,13 +6,14 @@ title: Thesis progress
 Period: 11.12.2020 - 14.12.2020
 --- 
 ## Goals:
-- [] Conditional GAN testing 
-    - [] add visual samples
-- [] RNN G/D conditional timeGAN
-    - [] custom dataset for stock data
-        - [] basic testing
-    - [] custom dataloader
-        - [] complex testing
+- [ ] Conditional GAN testing 
+    - [ ] add visual samples
+- [ ] RNN G/D conditional timeGAN
+    - [ ] custom dataset for stock data
+        - [ ] basic testing
+    - [ ] plotly
+    - [ ] custom dataloader
+        - [ ] complex testing
 ---
 ## Achievements:
 1. Conditional GAN testing
