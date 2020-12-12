@@ -24,16 +24,16 @@ class Generator(nn.Module):
         self.num_labels = 10
 
         __module_list = [
-            nn.Linear(self.dim_latent + self.num_labels, self.dim_hidden * 2, bias=True),
-            nn.BatchNorm1d(self.dim_hidden * 2, affine=True, track_running_stats=True),
+            nn.Linear(self.dim_latent + self.num_labels, self.dim_hidden * 16, bias=True),
+            nn.BatchNorm1d(self.dim_hidden * 16, affine=True, track_running_stats=True),
             nn.ReLU(),
-            nn.Linear(self.dim_hidden * 2, self.dim_hidden * 4, bias=True),
-            nn.BatchNorm1d(self.dim_hidden * 4, affine=True, track_running_stats=True),
+            nn.Linear(self.dim_hidden * 16, self.dim_hidden * 32, bias=True),
+            nn.BatchNorm1d(self.dim_hidden * 32, affine=True, track_running_stats=True),
             nn.ReLU(),
-            nn.Linear(self.dim_hidden * 4, self.dim_hidden * 8, bias=True),
-            nn.BatchNorm1d(self.dim_hidden * 8, affine=True, track_running_stats=True),
+            nn.Linear(self.dim_hidden * 32, self.dim_hidden * 64, bias=True),
+            nn.BatchNorm1d(self.dim_hidden * 64, affine=True, track_running_stats=True),
             nn.ReLU(),
-            nn.Linear(self.dim_hidden * 8, self.dim_output, bias=True),
+            nn.Linear(self.dim_hidden * 64, self.dim_output, bias=True),
             nn.Tanh()
         ]
 
