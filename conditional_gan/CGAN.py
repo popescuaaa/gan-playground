@@ -11,13 +11,6 @@ from utils import *
 
 import matplotlib.pyplot as plt
 
-
-def make_one_hot(target: int, num_classes=10):
-    target = torch.ones(size=(10,)) * target
-    target = (target == torch.arange(num_classes))
-    return target.type(torch.FloatTensor)
-
-
 class GAN:
     def __init__(self):
         torch.random.manual_seed(42)
@@ -99,7 +92,7 @@ class GAN:
         for epoch in range(self.num_epochs):
             for batch_idx, (real, labels) in enumerate(self.loader):
                 real = real.view(-1, 784).cuda()
-                c = torch.nn.functional.one_hot(labels).cuda()
+                c = torch.nn.functional.one_hot(labels).cuda()  # one hot vector
                 if c.shape[1] == 10:  # is 9 somehow and somewhere in the process
                     batch_size = real.shape[0]
                     noise = self.g.sample(batch_size).cuda()
@@ -112,14 +105,11 @@ class GAN:
                         print(
                             f"Epoch [{epoch}/{self.num_epochs}] Batch {batch_idx}/{len(self.loader)} \
                               Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
-                        )
+                            )
 
-                        _c = make_one_hot(8)
-                        stack = _c
-                        for i in range(batch_size):
-                            _c = torch.cat([_c, stack], 1)
-
-                        fake_data = self.g.generate_visual_sample(self.batch_size, _c).detach()
-                        logits = self.d(fake_data)
+                        test_label = torch.tensor([5] * self.batch_size)
+                        condition = torch.nn.functional.one_hot(test_label, 10).cuda()
+                        fake_data = self.g.generate_visual_sample(self.batch_size, condition).detach()
+                        logits = self.d(fake_data, condition)
                         fake_grid = create_grid_plot(fake_data, logits)
                         plt.show()
