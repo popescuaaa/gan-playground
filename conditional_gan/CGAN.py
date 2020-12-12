@@ -11,6 +11,7 @@ from utils import *
 
 import matplotlib.pyplot as plt
 
+
 class GAN:
     def __init__(self):
         torch.random.manual_seed(42)
@@ -21,7 +22,7 @@ class GAN:
         self.dim_input_d = 28 * 28
         self.batch_size = 64
         self.learning_rate = 1e-4
-        self.num_epochs = 50
+        self.num_epochs = 100
         self.display_freq = 50
 
         self.d_train_iter = 2  # This is possible to have a relation with TTsUR
@@ -105,11 +106,23 @@ class GAN:
                         print(
                             f"Epoch [{epoch}/{self.num_epochs}] Batch {batch_idx}/{len(self.loader)} \
                               Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
-                            )
+                        )
 
-                        test_label = torch.tensor([5] * self.batch_size)
-                        condition = torch.nn.functional.one_hot(test_label, 10).cuda()
-                        fake_data = self.g.generate_visual_sample(self.batch_size, condition).detach()
-                        logits = self.d(fake_data, condition)
-                        fake_grid = create_grid_plot(fake_data, logits)
-                        plt.show()
+
+def generate_digit(digit: int, batch_size: int, gan: GAN):
+    fake_labels = torch.tensor([digit] * batch_size)
+    condition = torch.nn.functional.one_hot(fake_labels, 10).cuda()
+    fake_data = gan.g.generate_visual_sample(batch_size, condition).detach()
+    logits = gan.d(fake_data, condition)
+    fake_grid = create_grid_plot(fake_data, logits)
+    plt.show()
+    plt.savefig('conditional_gan_' + str(digit))
+
+
+if __name__ == '__main__':
+    gan = GAN()
+    gan.train_system()
+
+    #  Test on different digits
+    for i in range(10):
+        generate_digit(i, gan.batch_size, gan)
