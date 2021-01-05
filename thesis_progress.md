@@ -32,6 +32,10 @@ Period: 11.12.2020 - 14.12.2020
     - @brief: 
     - @result:
     - @docs:
+3. Time gan 2
+- @brief: 
+- @result:
+- @docs:
 ---
 Problems:
 1. problem number one
