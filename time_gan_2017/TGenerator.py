@@ -8,12 +8,13 @@ import torch.nn as nn
 
 class LSTMGenerator(nn.Module):
 
-    def __init__(self, dim_latent, dim_output, dist_latent, layers_num=1, dim_hidden=256):
+    def __init__(self, dim_latent, dim_output, dist_latent, num_layers=1, dim_hidden=256):
         super().__init__()
-        self.n_layers = layers_num
-        self.hidden_dim = dim_hidden
-        self.out_dim = dim_output
+        self.num_layers = num_layers
+        self.dim_hidden = dim_hidden
+        self.dim_output = dim_output
         self.dist_latent = dist_latent
+        self.dim_latent = dim_latent
 
         # x = noise from dim latent
         # lstm(
@@ -24,22 +25,23 @@ class LSTMGenerator(nn.Module):
         # out = tensor containing the output features (h_t) from the last layer of the LSTM
         # we take the out value => linear and tanh => [-1, 1]
 
-        self.lstm = nn.LSTM(dim_latent, dim_hidden, layers_num, batch_first=True)
-        self.linear = nn.Sequential(nn.Linear(dim_hidden, dim_output), nn.Tanh())
+        self.lstm = nn.LSTM(dim_latent, self.dim_hidden,  self.num_layers, batch_first=True)
+        self.linear = nn.Sequential(nn.Linear(self.dim_hidden, self.dim_output), nn.Tanh())
 
         # tanh => increase with a value form [-1, 1]
 
     def forward(self, x):
+        print('arrive_here')
         batch_size, seq_len = x.size(0), x.size(1)
 
         # initial values
 
-        h_0 = torch.zeros(self.n_layers, batch_size, self.hidden_dim)
-        c_0 = torch.zeros(self.n_layers, batch_size, self.hidden_dim)
+        h_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden)
+        c_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden)
 
         recurrent_features, _ = self.lstm(x, (h_0, c_0))
-        outputs = self.linear(recurrent_features.contiguous().view(batch_size * seq_len, self.hidden_dim))
-        outputs = outputs.view(batch_size, seq_len, self.out_dim)
+        outputs = self.linear(recurrent_features.contiguous().view(batch_size * seq_len, self.num_layers))
+        outputs = outputs.view(batch_size, seq_len, self.dim_output)
         return outputs
 
     def sample(self, num_samples) -> torch.Tensor:
