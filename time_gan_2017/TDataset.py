@@ -17,7 +17,6 @@ class StockDataset(Dataset):
 
         for idx in range(0, len(self.data) // seq_len, seq_len):
             tensor_like.append(self.data[idx: idx + seq_len])
-        print(len(tensor_like))
 
         self.data = torch.FloatTensor(tensor_like)
 
@@ -45,17 +44,17 @@ class StockDataset(Dataset):
         return self.data[idx]
 
 
-if __name__ == '__main__':
-    # dataset test
-    ds = StockDataset()
-    dl = DataLoader(ds, batch_size=10, shuffle=True, num_workers=10)
-    for i, real in enumerate(dl):
-        print('Index: {} data {}'.format(i, real))
-        print(real.shape)
-        break
-
-    ds = StockDataset(normalize=True)
-    dl = DataLoader(ds, batch_size=10, shuffle=True, num_workers=10)
-    for i, batch in enumerate(dl):
-        print('Index: {} data {}'.format(i, batch))
-        break
+# if __name__ == '__main__':
+#     # dataset test
+#     ds = StockDataset()
+#     dl = DataLoader(ds, batch_size=10, shuffle=True, num_workers=10)
+#     for i, real in enumerate(dl):
+#         print('Index: {} data {}'.format(i, real))
+#         print(real.shape)
+#         break
+#
+#     ds = StockDataset(normalize=True)
+#     dl = DataLoader(ds, batch_size=10, shuffle=True, num_workers=10)
+#     for i, batch in enumerate(dl):
+#         print('Index: {} data {}'.format(i, batch))
+#         break
