@@ -6,7 +6,8 @@ import torch.optim as optim
 import torch.nn as nn
 import torch
 
-import plotly.graph_objects as go
+from plot import plot_time_series
+
 
 
 class TimeGAN:
@@ -103,11 +104,11 @@ class TimeGAN:
 
     def test_system(self):
         # plot a dataset sample over time
+        for i in range(4):
+            plot_time_series(self.ds[i])
 
-        sample = self.ds[10]
-        time = [i for i in range(len(sample))]
-        fig = go.Figure(data=go.Scatter(x=time, y=sample))
-        fig.show()
+        # plot time gan generated values
+
 
 
 # def test_generator(g: LSTMGenerator) -> bool:
