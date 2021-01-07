@@ -26,29 +26,28 @@ class LSTMGenerator(nn.Module):
         # we take the out value => linear and tanh => [-1, 1]
 
         self.lstm = nn.LSTM(dim_latent, self.dim_hidden,  self.num_layers, batch_first=True)
-        self.linear = nn.Sequential(nn.Linear(self.dim_hidden, self.dim_output), nn.Tanh())
+        self.linear = nn.Sequential(nn.Linear(self.dim_hidden, self.dim_output))
 
         # tanh => increase with a value form [-1, 1]
 
     def forward(self, x):
-        print('arrive_here')
         batch_size, seq_len = x.size(0), x.size(1)
 
         # initial values
-
-        h_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden)
-        c_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden)
+        # linear for h_0, c_0 ->
+        h_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden).cuda()
+        c_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden).cuda()
 
         recurrent_features, _ = self.lstm(x, (h_0, c_0))
-        outputs = self.linear(recurrent_features.contiguous().view(batch_size * seq_len, self.num_layers))
+        outputs = self.linear(recurrent_features.contiguous().view(batch_size * seq_len, -1))
         outputs = outputs.view(batch_size, seq_len, self.dim_output)
         return outputs
 
-    def sample(self, num_samples) -> torch.Tensor:
-        z = self.dist_latent.sample(sample_shape=(num_samples, self.dim_latent))
+    def sample(self, num_samples, batch_size) -> torch.Tensor:
+        z = self.dist_latent.sample(sample_shape=(num_samples * batch_size, self.dim_latent))
         return z
 
-    def generate_visual_sample(self, num_samples):
-        z = self.dist_latent.sample(num_samples)
+    def generate_visual_sample(self, num_samples, batch_size):
+        z = self.dist_latent.sample(num_samples, batch_size)
         x = self.forward(z)
         return x

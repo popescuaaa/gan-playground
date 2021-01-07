@@ -4,8 +4,9 @@ from TDataset import StockDataset
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn as nn
-
 import torch
+import plotly.graph_objects as go
+
 
 
 class TimeGAN:
@@ -24,17 +25,18 @@ class TimeGAN:
         self.g_train_iter = 2
 
         self.batch_size = 10
+        self.seq_len = 10  # default
         self.learning_rate = 1e-4
         self.num_epochs = 100
 
         self.g = LSTMGenerator(self.g_dim_latent, self.g_dim_output, self.g_dist_latent, self.g_num_layers,
-                               self.g_dim_hidden)
+                               self.g_dim_hidden).cuda()
 
-        self.d = LSTMDiscriminator(self.d_dim_input, self.d_num_layers, self.d_dim_hidden)
+        self.d = LSTMDiscriminator(self.d_dim_input, self.d_num_layers, self.d_dim_hidden).cuda()
 
         # Data
-        self.ds = StockDataset()
-        self.dl = DataLoader(self.ds, self.batch_size, shuffle=True, num_workers=10)
+        self.ds = StockDataset(seq_len=self.seq_len)
+        self.dl = DataLoader(self.ds, self.batch_size, shuffle=False, num_workers=10)
 
         # Optimizer
         self.d_optimizer = optim.Adam(self.g.parameters(), lr=self.learning_rate / 2)
@@ -65,7 +67,6 @@ class TimeGAN:
 
     def train_generator(self, noise):
         self.g_optimizer.zero_grad()
-        self.d.eval()
         self.g.train()
         self.d.requires_grad_(False)
         self.g.requires_grad_(True)
@@ -84,12 +85,14 @@ class TimeGAN:
         for epoch in range(self.num_epochs):
             for batch_idx, real in enumerate(self.dl):
 
-                real = real.view(-1, 1).cuda()
+                print(next(self.g.parameters()).is_cuda)
                 batch_size = real.shape[0]
-                noise = self.g.sample(batch_size).cuda()
+                real = real.view(self.seq_len, batch_size, 1)
+                real = real.cuda()
+                noise = self.g.sample(batch_size, batch_size).view(self.seq_len, batch_size, self.g_dim_latent)
+                noise = noise.cuda()
 
                 loss_g = self.train_generator(noise)
-
                 loss_d = self.train_discriminator(real, noise)
 
                 if batch_idx == 0:
@@ -98,15 +101,27 @@ class TimeGAN:
                           Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
                     )
 
-
-def test_generator(g: LSTMGenerator) -> bool:
-    pass
-
-
-def test_discriminator(d: LSTMDiscriminator) -> bool:
-    pass
+    def test_system(self):
+        fig = go.Figure(data=go.Bar(y=[2, 3, 1]))
+        fig.write_html('first_figure.html', auto_open=True)
+    
 
 
-if __name__ == '__main__':
-    time_gan = TimeGAN()
-    time_gan.train_system()
+# def test_generator(g: LSTMGenerator) -> bool:
+#     pass
+#
+#
+# def test_discriminator(d: LSTMDiscriminator) -> bool:
+#     pass
+
+
+# if __name__ == '__main__':
+#     time_gan = TimeGAN()
+#     time_gan.train_system()
+
+
+'''
+d -> 10 (2 * seq) -> plot
+g -> face 10 rulari peste prima seq -> mean
+plot -> cu mean si variance
+'''

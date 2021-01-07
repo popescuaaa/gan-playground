@@ -30,6 +30,7 @@ class StockDataset(Dataset):
             self.data = self.normalize()
 
     def normalize(self):
+        # change for [0, 1]
         normalized_data = self.data / self.max
         return normalized_data
 
