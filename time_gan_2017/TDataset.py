@@ -15,27 +15,24 @@ class StockDataset(Dataset):
         self.data = [float(e[3]) for e in self.row_data[1:]]
         tensor_like = []
 
-        for idx in range(0, len(self.data) // seq_len, seq_len):
+        for idx in range(0, len(self.data) - seq_len):
             tensor_like.append(self.data[idx: idx + seq_len])
 
         self.data = torch.FloatTensor(tensor_like)
 
         self.len = self.data.shape[1]
-        self.max = self.data.max()
-
-        # There is the same asset price but they can be grouped in small chunks
-        # of length seq_len as they will irl by date
+        self.mean = self.data.mean()
+        self.std = torch.std(self.data)
 
         if normalize:
             self.data = self.normalize()
 
     def normalize(self):
-        # change for [0, 1]
-        normalized_data = self.data / self.max
+        normalized_data = (self.data - self.mean) / self.std
         return normalized_data
 
     def denormalize(self):
-        denormalized_data = [float(e * self.max) for e in self.data]
+        denormalized_data = self.data * self.std + self.mean
         return denormalized_data
 
     def __len__(self):
