@@ -16,6 +16,9 @@ class LSTMGenerator(nn.Module):
         self.dist_latent = dist_latent
         self.dim_latent = dim_latent
 
+        self.seq_len = None
+        self.batch_size = None
+
         # x = noise from dim latent
         # lstm(
         #       dim_x,
@@ -31,16 +34,16 @@ class LSTMGenerator(nn.Module):
         # tanh => increase with a value form [-1, 1]
 
     def forward(self, x):
-        batch_size, seq_len = x.size(0), x.size(1)
+        self.batch_size, self.seq_len = x.size(0), x.size(1)
 
         # initial values
         # linear for h_0, c_0 ->
-        h_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden).cuda()
-        c_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden).cuda()
+        h_0 = torch.zeros(self.num_layers, self.batch_size, self.dim_hidden).cuda()
+        c_0 = torch.zeros(self.num_layers, self.batch_size, self.dim_hidden).cuda()
 
         recurrent_features, _ = self.lstm(x, (h_0, c_0))
-        outputs = self.linear(recurrent_features.contiguous().view(batch_size * seq_len, -1))
-        outputs = outputs.view(batch_size, seq_len, self.dim_output)
+        outputs = self.linear(recurrent_features.contiguous().view(self.batch_size * self.seq_len, -1))
+        outputs = outputs.view(self.batch_size, self.seq_len, self.dim_output)
         return outputs
 
     def sample(self, num_samples, batch_size) -> torch.Tensor:
@@ -48,6 +51,6 @@ class LSTMGenerator(nn.Module):
         return z
 
     def generate_visual_sample(self, num_samples, batch_size):
-        z = self.dist_latent.sample(num_samples, batch_size)
+        z = self.sample(num_samples, batch_size).view(self.seq_len, batch_size, self.dim_latent).cuda()
         x = self.forward(z)
         return x

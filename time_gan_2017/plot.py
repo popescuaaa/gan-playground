@@ -1,9 +1,9 @@
 import plotly.graph_objects as go
 
 
-def plot_time_series(ts):
+def plot_time_series(ts, figure_name):
     time = [i for i in range(len(ts))]
-    fig = go.Figure(data=go.Scatter(x=time, y=ts))
+    fig = go.Figure(data=go.Scatter(x=time, y=ts, name=figure_name))
     fig.update_layout(
         autosize=False,
         width=230,
@@ -17,4 +17,4 @@ def plot_time_series(ts):
         ),
         paper_bgcolor="LightSteelBlue",
     )
-    fig.show()
+    return fig

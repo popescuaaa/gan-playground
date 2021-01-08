@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch
 
 from plot import plot_time_series
+import wandb
+import yaml
 
 
 class TimeGAN:
@@ -89,7 +91,7 @@ class TimeGAN:
                 batch_size = real.shape[0]
                 real = real.view(self.seq_len, batch_size, 1)
                 real = real.cuda()
-                noise = self.g.sample(batch_size, batch_size).view(self.seq_len, batch_size, self.g_dim_latent)
+                noise = self.g.sample(self.seq_len, batch_size).view(self.seq_len, batch_size, self.g_dim_latent)
                 noise = noise.cuda()
 
                 loss_g = self.train_generator(noise)
@@ -101,28 +103,33 @@ class TimeGAN:
                           Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
                     )
 
-
+                    wandb.log({'epoch': epoch, 'd loss': loss_d, 'g loss': loss_g})
 
     def test_system(self):
-        # plot a dataset sample over time
-        for i in range(4):
-            plot_time_series(self.ds[i])
-
-        # plot time gan generated values
+        pass
 
 
-# def test_generator(g: LSTMGenerator) -> bool:
-#     pass
-#
-#
-# def test_discriminator(d: LSTMDiscriminator) -> bool:
-#     pass
+def test_generator(g: LSTMGenerator) -> bool:
+    pass
 
 
-# if __name__ == '__main__':
-#     time_gan = TimeGAN()
-#     time_gan.train_system()
+def test_discriminator(d: LSTMDiscriminator) -> bool:
+    pass
 
+
+if __name__ == '__main__':
+    # setup
+    torch.random.manual_seed(42)
+
+    with open('../config.yaml', 'r') as f:
+        config = yaml.load(f)
+
+    run_name = str(config.values())
+
+    wandb.init(config=config, project='time-gan-2017', name=run_name)
+
+    time_gan = TimeGAN()
+    time_gan.train_system()
 
 '''
 d -> 10 (2 * seq) -> plot
