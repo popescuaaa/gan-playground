@@ -12,24 +12,24 @@ import yaml
 
 
 class TimeGAN:
-    def __init__(self):
-        # All models data are passed trough a container with linear and
-        self.d_num_layers = 1  # default
-        self.d_dim_hidden = 256  # default
-        self.d_dim_input = 1
-        self.d_train_iter = 2
+    def __init__(self, cfg):
+        # discriminator
+        self.d_num_layers = int(cfg['d']['d_num_layers'])
+        self.d_dim_hidden = int(cfg['d']['d_dim_hidden'])
+        self.d_dim_input = int(cfg['d']['d_dim_input'])
 
-        self.g_num_layers = 1
-        self.g_dim_hidden = 256
-        self.g_dim_latent = 128
-        self.g_dim_output = 1
-        self.g_dist_latent = torch.distributions.normal.Normal(loc=0, scale=1)  # Gaussian(0, 1)
-        self.g_train_iter = 2
+        # generator
+        self.g_num_layers = int(cfg['g']['g_num_layers'])
+        self.g_dim_hidden = int(cfg['g']['g_dim_hidden'])
+        self.g_dim_latent = int(cfg['g']['g_dim_latent'])
+        self.g_dim_output = int(cfg['g']['g_dim_output'])
+        self.g_dist_latent = torch.distributions.normal.Normal(loc=0, scale=1)  # Gaussian( 0, 1 )
 
-        self.batch_size = 10
-        self.seq_len = 10  # default
-        self.learning_rate = 1e-4
-        self.num_epochs = 100
+        # system
+        self.batch_size = int(cfg['system']['batch_size'])
+        self.seq_len = int(cfg['system']['seq_len'])
+        self.learning_rate = float(cfg['system']['learning_rate'])
+        self.num_epochs = int(cfg['system']['num_epochs'])
 
         self.g = LSTMGenerator(self.g_dim_latent, self.g_dim_output, self.g_dist_latent, self.g_num_layers,
                                self.g_dim_hidden).cuda()
@@ -121,14 +121,14 @@ if __name__ == '__main__':
     # setup
     torch.random.manual_seed(42)
 
-    with open('../config.yaml', 'r') as f:
+    with open('config.yaml', 'r') as f:
         config = yaml.load(f)
 
     run_name = str(config.values())
 
     wandb.init(config=config, project='time-gan-2017', name=run_name)
 
-    time_gan = TimeGAN()
+    time_gan = TimeGAN(config)
     time_gan.train_system()
 
 '''

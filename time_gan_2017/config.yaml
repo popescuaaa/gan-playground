@@ -1,0 +1,17 @@
+system:
+  batch_size: 10
+  seq_len: 10
+  learning_rate: 1e-4
+  num_epochs: 1
+
+d:
+  d_num_layers: 1
+  d_dim_hidden: 256
+  d_dim_input: 1
+
+g:
+  g_num_layers: 1
+  g_dim_hidden: 256
+  g_dim_latent: 128
+  g_dim_output: 1
+
