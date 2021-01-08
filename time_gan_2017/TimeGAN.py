@@ -9,7 +9,6 @@ import torch
 from plot import plot_time_series
 
 
-
 class TimeGAN:
     def __init__(self):
         # All models data are passed trough a container with linear and
@@ -102,13 +101,14 @@ class TimeGAN:
                           Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
                     )
 
+
+
     def test_system(self):
         # plot a dataset sample over time
         for i in range(4):
             plot_time_series(self.ds[i])
 
         # plot time gan generated values
-
 
 
 # def test_generator(g: LSTMGenerator) -> bool:

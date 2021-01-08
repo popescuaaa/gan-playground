@@ -4,7 +4,7 @@
     - [X] save a picture with last result
 - [X] CGAN current framework in new branch
     - [X] improve performance for CGAN
-- [] CGAN visual samples
+- [X] CGAN visual samples
     - [] plot loss for G and D
     - [] CGAN with conv nets
 - [] custom loss function
