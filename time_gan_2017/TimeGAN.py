@@ -6,7 +6,6 @@ import torch.optim as optim
 import torch.nn as nn
 import torch
 
-from plot import plot_time_series
 import wandb
 import yaml
 
@@ -105,7 +104,6 @@ class TimeGAN:
 
                     wandb.log({'epoch': epoch, 'd loss': loss_d, 'g loss': loss_g})
 
-
     def test_system(self):
         pass
 
@@ -127,7 +125,7 @@ if __name__ == '__main__':
 
     run_name = str(config.values())
 
-    # wandb.init(config=config, project='time-gan-2017', name=run_name)
+    wandb.init(config=config, project='time-gan-2017', name=run_name)
 
     time_gan = TimeGAN(config)
     time_gan.train_system()
