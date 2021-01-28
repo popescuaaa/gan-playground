@@ -22,17 +22,17 @@ class TimeGAN:
         self.g_dim_hidden = int(cfg['g']['g_dim_hidden'])
         self.g_dim_latent = int(cfg['g']['g_dim_latent'])
         self.g_dim_output = int(cfg['g']['g_dim_output'])
-        self.g_dist_latent = torch.distributions.normal.Normal(loc=0, scale=1)  # Gaussian( 0, 1 )
 
-        # system
+        # Latent distribution
+        self.dist_latent = torch.distributions.normal.Normal(loc=0, scale=1)  # Gaussian( 0, 1 )
+
+        # System
         self.batch_size = int(cfg['system']['batch_size'])
         self.seq_len = int(cfg['system']['seq_len'])
         self.learning_rate = float(cfg['system']['learning_rate'])
         self.num_epochs = int(cfg['system']['num_epochs'])
 
-        self.g = LSTMGenerator(self.g_dim_latent, self.g_dim_output, self.g_dist_latent, self.g_num_layers,
-                               self.g_dim_hidden).cuda()
-
+        self.g = LSTMGenerator(self.g_dim_latent, self.g_dim_output, self.g_num_layers, self.g_dim_hidden).cuda()
         self.d = LSTMDiscriminator(self.d_dim_input, self.d_num_layers, self.d_dim_hidden).cuda()
 
         # Data
@@ -85,12 +85,11 @@ class TimeGAN:
     def train_system(self):
         for epoch in range(self.num_epochs):
             for batch_idx, real in enumerate(self.dl):
-
-                print(next(self.g.parameters()).is_cuda)
-                batch_size = real.shape[0]
-                real = real.view(self.seq_len, batch_size, 1)
+                real = real.view(self.seq_len, self.batch_size, 1)
                 real = real.cuda()
-                noise = self.g.sample(self.seq_len, batch_size).view(self.seq_len, batch_size, self.g_dim_latent)
+
+                noise = self.dist_latent.sample(sample_shape=(self.seq_len * self.batch_size, self.g_dim_latent)).\
+                    view(self.batch_size, self.seq_len, self.g_dim_latent)
                 noise = noise.cuda()
 
                 loss_g = self.train_generator(noise)
@@ -102,17 +101,21 @@ class TimeGAN:
                           Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
                     )
 
-                    wandb.log({'epoch': epoch, 'd loss': loss_d, 'g loss': loss_g})
-
-    def test_system(self):
-        pass
+                    # wandb.log({'epoch': epoch, 'd loss': loss_d, 'g loss': loss_g})
 
 
-def test_generator(g: LSTMGenerator) -> bool:
-    pass
+def test_generator(tgan: TimeGAN) -> bool:
+    noise = tgan.dist_latent.sample(sample_shape=(tgan.seq_len * tgan.batch_size, tgan.g_dim_latent)).\
+        view(tgan.batch_size, tgan.seq_len, tgan.g_dim_latent)
+    noise = noise.cuda()
+    fake = tgan.g(noise)
+    fake = fake.cpu()
+    print(fake)
+
+    return True
 
 
-def test_discriminator(d: LSTMDiscriminator) -> bool:
+def test_discriminator(tgan: TimeGAN) -> bool:
     pass
 
 
@@ -125,10 +128,12 @@ if __name__ == '__main__':
 
     run_name = str(config.values())
 
-    wandb.init(config=config, project='time-gan-2017', name=run_name)
+    # wandb.init(config=config, project='time-gan-2017', name=run_name)
 
     time_gan = TimeGAN(config)
     time_gan.train_system()
+
+    test_generator(time_gan)
 
 '''
 d -> 10 (2 * seq) -> plot

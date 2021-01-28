@@ -25,6 +25,6 @@ class LSTMDiscriminator(nn.Module):
         # now retrieve the hidden states as the recurrent features from lstm
         # Basically, the output of a lstm also contains a pair (h_n, c_n) last hidden state, last cell state
         recurrent_features, _ = self.lstm(x, (h_0, c_0))
-        outputs = self.linear(recurrent_features.contiguous().view(batch_size * seq_len, -1))
+        outputs = self.linear(recurrent_features.contiguous().view(batch_size * seq_len, self.dim_hidden))
         outputs = outputs.view(batch_size, seq_len, 1)
         return outputs
