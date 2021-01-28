@@ -19,8 +19,7 @@ class StockDataset(Dataset):
             tensor_like.append(self.data[idx: idx + seq_len])
 
         self.data = torch.FloatTensor(tensor_like)
-
-        self.len = self.data.shape[1]
+        self.len = self.data.shape[0]
         self.mean = self.data.mean()
         self.std = torch.std(self.data)
 
@@ -45,7 +44,7 @@ class StockDataset(Dataset):
 if __name__ == '__main__':
     # dataset test
     ds = StockDataset()
-    dl = DataLoader(ds, batch_size=10, shuffle=True, num_workers=10)
+    dl = DataLoader(ds, batch_size=5, shuffle=True, num_workers=10)
     for i, real in enumerate(dl):
         print('Index: {} data {}'.format(i, real))
         print(real.shape)
