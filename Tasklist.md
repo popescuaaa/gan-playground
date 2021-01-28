@@ -1,18 +1,9 @@
-- [X] Make an organized version
-- [X] Show generator examples
-    - [X] plot loss for G and D
-    - [X] save a picture with last result
-- [X] CGAN current framework in new branch
-    - [X] improve performance for CGAN
-- [X] CGAN visual samples
-    - [] plot loss for G and D
-    - [] CGAN with conv nets
-- [] custom loss function
-- [] make yaml config with all stable version parameters
- ---
-- [] Time GAN in new Branch - 2017 - without E and R
-    - [] go over the paper again - half solved
-        - [] two variations - 2017 and 2019
-    - [] get data for financial market and plot them
-    - [] implement timeGAN
-    - [] plot timeGAN results
+# Time GAN - RNN version
+
+---
+
+TODOs:
+- [ ] correct all code problems - start with dims mismatch
+- [ ] run a few sample on a new project on wandb 
+- [ ] test the framework with basic deltas
+- [ ] test the framework with teo's way

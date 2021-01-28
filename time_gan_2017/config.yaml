@@ -2,7 +2,7 @@ system:
   batch_size: 10
   seq_len: 10
   learning_rate: 1e-4
-  num_epochs: 1
+  num_epochs: 100
 
 d:
   d_num_layers: 1
