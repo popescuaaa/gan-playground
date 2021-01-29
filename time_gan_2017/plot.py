@@ -1,7 +1,8 @@
 import plotly.graph_objects as go
+import numpy as np
 
 
-def plot_time_series(ts, figure_name):
+def plot_time_series(ts: np.ndarray, figure_name):
     time = [i for i in range(len(ts))]
     fig = go.Figure(data=go.Scatter(x=time, y=ts, name=figure_name))
     fig.update_layout(
