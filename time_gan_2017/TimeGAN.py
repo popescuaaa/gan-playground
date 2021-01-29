@@ -9,6 +9,8 @@ import torch
 import wandb
 import yaml
 
+from plot import plot_time_series
+
 
 class TimeGAN:
     def __init__(self, cfg):
@@ -36,16 +38,17 @@ class TimeGAN:
         self.d = LSTMDiscriminator(self.d_dim_input, self.d_num_layers, self.d_dim_hidden).cuda()
 
         # Data
-        self.ds = StockDataset(seq_len=self.seq_len)
-        self.dl = DataLoader(self.ds, self.batch_size, shuffle=False, num_workers=10)
+        self.ds = StockDataset(seq_len=self.seq_len, normalize=True)
+        self.dl = DataLoader(self.ds, self.batch_size, shuffle=True, num_workers=10)
 
         # Optimizer
-        self.d_optimizer = optim.Adam(self.g.parameters(), lr=self.learning_rate / 2)
-        self.g_optimizer = optim.Adam(self.d.parameters(), lr=self.learning_rate * 2)
+        self.d_optimizer = optim.Adam(list(self.g.parameters()), lr=self.learning_rate / 2)
+        self.g_optimizer = optim.Adam(list(self.d.parameters()), lr=self.learning_rate * 2)
 
         self.criterion = nn.BCEWithLogitsLoss()
 
     def train_discriminator(self, real, noise):
+
         self.d_optimizer.zero_grad()
         self.d.train()
         self.d.requires_grad_(True)
@@ -53,8 +56,8 @@ class TimeGAN:
 
         fake = self.g(noise)
 
-        d_real = self.d(real).view(-1)
-        d_fake = self.d(fake).view(-1)
+        d_real = self.d(real)
+        d_fake = self.d(fake)
 
         loss_fake = self.criterion(d_fake, torch.zeros_like(d_fake))
         loss_real = self.criterion(d_real, torch.ones_like(d_real))
@@ -64,7 +67,7 @@ class TimeGAN:
         loss.backward()
         self.d_optimizer.step()
 
-        return loss
+        return loss, fake
 
     def train_generator(self, noise):
         self.g_optimizer.zero_grad()
@@ -73,7 +76,7 @@ class TimeGAN:
         self.g.requires_grad_(True)
 
         fake = self.g(noise)
-        output = self.d(fake).view(-1)
+        output = self.d(fake)
 
         loss = -1 * output.mean()
 
@@ -85,15 +88,15 @@ class TimeGAN:
     def train_system(self):
         for epoch in range(self.num_epochs):
             for batch_idx, real in enumerate(self.dl):
-                real = real.view(self.seq_len, self.batch_size, 1)
+                #  real = real.view(self.seq_len, self.batch_size, 1)
+                real = real.view(*real.shape, 1)
                 real = real.cuda()
 
-                noise = self.dist_latent.sample(sample_shape=(self.seq_len * self.batch_size, self.g_dim_latent)).\
-                    view(self.batch_size, self.seq_len, self.g_dim_latent)
+                noise = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
                 noise = noise.cuda()
 
                 loss_g = self.train_generator(noise)
-                loss_d = self.train_discriminator(real, noise)
+                loss_d, fake = self.train_discriminator(real, noise)
 
                 if batch_idx == 0:
                     print(
@@ -101,11 +104,18 @@ class TimeGAN:
                           Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
                     )
 
-                    # wandb.log({'epoch': epoch, 'd loss': loss_d, 'g loss': loss_g})
+                    wandb.log({
+                        'epoch': epoch,
+                        'd loss': loss_d,
+                        'g loss': loss_g,
+                        'sample fig': plot_time_series(fake[0].view(-1).detach().cpu().numpy(), 'Fake '
+                                                                                                'sample'),
+                        'sample real': plot_time_series(real[0].view(-1).cpu().numpy(), 'Real sample')
+                    })
 
 
 def test_generator(tgan: TimeGAN) -> bool:
-    noise = tgan.dist_latent.sample(sample_shape=(tgan.seq_len * tgan.batch_size, tgan.g_dim_latent)).\
+    noise = tgan.dist_latent.sample(sample_shape=(tgan.seq_len * tgan.batch_size, tgan.g_dim_latent)). \
         view(tgan.batch_size, tgan.seq_len, tgan.g_dim_latent)
     noise = noise.cuda()
     fake = tgan.g(noise)
@@ -128,7 +138,7 @@ if __name__ == '__main__':
 
     run_name = str(config.values())
 
-    # wandb.init(config=config, project='time-gan-2017', name=run_name)
+    wandb.init(config=config, project='time-gan-2017', name=run_name)
 
     time_gan = TimeGAN(config)
     time_gan.train_system()
