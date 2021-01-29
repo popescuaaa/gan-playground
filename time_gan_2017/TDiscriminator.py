@@ -16,15 +16,18 @@ class LSTMDiscriminator(nn.Module):
         self.lstm = nn.LSTM(self.dim_input, self.dim_hidden, self.num_layers, batch_first=True)
         self.linear = nn.Sequential(nn.Linear(self.dim_hidden, 1))
 
+        self.h_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
+        self.c_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
+
     def forward(self, x):
         batch_size, seq_len = x.size(0), x.size(1)
 
-        h_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden).cuda()
-        c_0 = torch.zeros(self.num_layers, batch_size, self.dim_hidden).cuda()
+        h_0 = self.h_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
+        c_0 = self.c_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
 
         # now retrieve the hidden states as the recurrent features from lstm
         # Basically, the output of a lstm also contains a pair (h_n, c_n) last hidden state, last cell state
         recurrent_features, _ = self.lstm(x, (h_0, c_0))
-        outputs = self.linear(recurrent_features.contiguous().view(batch_size * seq_len, self.dim_hidden))
-        outputs = outputs.view(batch_size, seq_len, 1)
+        recurrent_features = recurrent_features[:, -1, :]
+        outputs = self.linear(recurrent_features.contiguous())
         return outputs
