@@ -28,16 +28,16 @@ class LSTMGenerator(nn.Module):
         self.lstm = nn.LSTM(self.dim_latent, self.dim_hidden, self.num_layers, batch_first=True)
         self.linear = nn.Sequential(nn.Linear(self.dim_hidden, self.dim_output))
 
-        # from linear <-
         self.h_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
         self.c_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
 
-    def forward(self, x):
+    def forward(self, x, d):
         batch_size, seq_len = x.size(0), x.size(1)
-
+        z = torch.cat([x, d], 1)
+        print(z.shape)
         h_0 = self.h_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
         c_0 = self.c_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
 
-        recurrent_features, _ = self.lstm(x, (h_0, c_0))
+        recurrent_features, _ = self.lstm(z, (h_0, c_0))
         outputs = self.linear(recurrent_features.contiguous())
         return outputs
