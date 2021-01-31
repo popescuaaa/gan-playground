@@ -53,27 +53,30 @@ class StockDatasetDeltas(Dataset):
         self.row_data = np.loadtxt('./stock_data.csv', delimiter=',', dtype=np.str)
 
         self.data = [float(e[3]) for e in self.row_data[1:]]
-        tensor_like = []
+        tensor_like_data = []
+        tensor_like_deltas = []
 
         for idx in range(0, len(self.data) - seq_len):
             deltas = np.subtract(np.array(self.data[idx: idx + seq_len][1:]),
                                  np.array(self.data[idx: idx + seq_len][:-1]))
 
-            deltas = np.concatenate([np.array([self.data[idx: idx + seq_len][0]]),
-                                     deltas])
+            # Added starting value as 0 to match sizes in G and D
+            deltas = np.concatenate([np.array([0]),
+                                    deltas])
 
-            tensor_like.append(deltas)
+            tensor_like_deltas.append(deltas)
+            tensor_like_data.append(self.data[idx: idx + seq_len])
 
-        self.data = torch.FloatTensor(tensor_like)
+        self.data = torch.FloatTensor(tensor_like_data)
+        self.deltas = torch.FloatTensor(tensor_like_deltas)
+
         self.len = self.data.shape[0]
-        self.mean = self.data.mean()
-        self.std = torch.std(self.data)
 
     def __len__(self):
         return self.len
 
     def __getitem__(self, idx):
-        return self.data[idx]
+        return self.data[idx], self.deltas[idx]
 
 
 def test_stock_dataset() -> None:
@@ -94,7 +97,9 @@ def test_deltas_stock_dataset() -> None:
     ds = StockDatasetDeltas()
     dl = DataLoader(ds, batch_size=5, shuffle=False, num_workers=10)
     for i, real in enumerate(dl):
-        print('Index: {} data {}'.format(i, real))
+        data, deltas = real
+        print('Shapes: data -> {} | deltas: {}'.format(data.shape, deltas.shape))
+        print('Index: {} data {}'.format(i, deltas))
         break
 
 
