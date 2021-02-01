@@ -1,6 +1,6 @@
 from TGenerator import LSTMGenerator
 from TDiscriminator import LSTMDiscriminator
-from TDataset import StockDataset
+from TDataset import StockDatasetDeltas
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn as nn
@@ -38,8 +38,8 @@ class TimeGAN:
         self.d = LSTMDiscriminator(self.d_dim_input, self.d_num_layers, self.d_dim_hidden).cuda()
 
         # Data
-        self.ds = StockDataset(seq_len=self.seq_len, normalize=True)
-        self.dl = DataLoader(self.ds, self.batch_size, shuffle=True, num_workers=10)
+        self.ds = StockDatasetDeltas(seq_len=self.seq_len)
+        self.dl = DataLoader(self.ds, self.batch_size, shuffle=False, num_workers=10)
 
         # Optimizer
         self.d_optimizer = optim.Adam(list(self.g.parameters()), lr=self.learning_rate / 2)
@@ -47,17 +47,17 @@ class TimeGAN:
 
         self.criterion = nn.BCEWithLogitsLoss()
 
-    def train_discriminator(self, real, noise):
+    def train_discriminator(self, data, deltas, noise_data, noise_deltas):
 
         self.d_optimizer.zero_grad()
         self.d.train()
         self.d.requires_grad_(True)
         self.g.requires_grad_(False)
 
-        fake = self.g(noise)
+        fake = self.g(noise_data, noise_deltas)
 
-        d_real = self.d(real)
-        d_fake = self.d(fake)
+        d_real = self.d(data, deltas)
+        d_fake = self.d(fake, deltas)  # train fake on real delta
 
         loss_fake = self.criterion(d_fake, torch.zeros_like(d_fake))
         loss_real = self.criterion(d_real, torch.ones_like(d_real))
@@ -69,14 +69,14 @@ class TimeGAN:
 
         return loss, fake
 
-    def train_generator(self, noise):
+    def train_generator(self, noise_data, noise_deltas, deltas):
         self.g_optimizer.zero_grad()
         self.g.train()
         self.d.requires_grad_(False)
         self.g.requires_grad_(True)
 
-        fake = self.g(noise)
-        output = self.d(fake)
+        fake = self.g(noise_data, noise_deltas)
+        output = self.d(fake, deltas)
 
         loss = -1 * output.mean()
 
@@ -88,15 +88,22 @@ class TimeGAN:
     def train_system(self):
         for epoch in range(self.num_epochs):
             for batch_idx, real in enumerate(self.dl):
-                #  real = real.view(self.seq_len, self.batch_size, 1)
-                real = real.view(*real.shape, 1)
-                real = real.cuda()
+                data, deltas = real
 
-                noise = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
-                noise = noise.cuda()
+                data = data.view(*data.shape, 1)
+                data = data.cuda()
 
-                loss_g = self.train_generator(noise)
-                loss_d, fake = self.train_discriminator(real, noise)
+                deltas = deltas.view(*deltas.shape, 1)
+                deltas = deltas.cuda()
+
+                noise_data = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
+                noise_data = noise_data.cuda()
+
+                noise_deltas = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
+                noise_deltas = noise_deltas.cuda()
+
+                loss_g = self.train_generator(noise_data, noise_deltas, deltas)
+                loss_d, fake = self.train_discriminator(data, deltas, noise_data, noise_deltas)
 
                 if batch_idx == 0:
                     print(
@@ -108,21 +115,39 @@ class TimeGAN:
                         'epoch': epoch,
                         'd loss': loss_d,
                         'g loss': loss_g,
-                        'sample fig': plot_time_series(fake[0].view(-1).detach().cpu().numpy(), 'Fake '
-                                                                                                'sample'),
-                        'sample real': plot_time_series(real[0].view(-1).cpu().numpy(), 'Real sample')
+                        'Conditional on deltas fake sample': plot_time_series(
+                            fake[0].view(-1).detach().cpu().numpy(),
+                            '[Conditional (on deltas)] Fake sample'),
+                        'Real sample': plot_time_series(
+                            data[0].view(-1).cpu().numpy(),
+                            '[Conditional (on deltas)] Real sample')
                     })
 
 
-def test_generator(tgan: TimeGAN) -> bool:
-    noise = tgan.dist_latent.sample(sample_shape=(tgan.seq_len * tgan.batch_size, tgan.g_dim_latent)). \
-        view(tgan.batch_size, tgan.seq_len, tgan.g_dim_latent)
-    noise = noise.cuda()
-    fake = tgan.g(noise)
-    fake = fake.cpu()
-    print(fake)
+def test_generator(tgan: TimeGAN) -> None:
+    noise_data = tgan.dist_latent.sample(sample_shape=(tgan.batch_size, tgan.seq_len, tgan.g_dim_latent))
+    noise_data = noise_data.cuda()
 
-    return True
+    noise_deltas = tgan.dist_latent.sample(sample_shape=(tgan.batch_size, tgan.seq_len, tgan.g_dim_latent))
+    noise_deltas = noise_deltas.cuda()
+
+    fake = tgan.g(noise_data, noise_deltas)
+    fakes = [fake.view(-1).detach().cpu()]
+
+    for _ in range(9):  # 10 runs in total
+        noise_data = tgan.dist_latent.sample(sample_shape=(tgan.batch_size, tgan.seq_len, tgan.g_dim_latent))
+        noise_data = noise_data.cuda()
+
+        noise_deltas = tgan.dist_latent.sample(sample_shape=(tgan.batch_size, tgan.seq_len, tgan.g_dim_latent))
+        noise_deltas = noise_deltas.cuda()
+
+        fakes.append(tgan.g(noise_data, noise_deltas).view(-1).detach().cpu())
+
+    fake_mean = sum(fakes) / len(fakes)
+
+    wandb.log({
+        'Generated sample for RCGAN': plot_time_series(fake_mean.numpy(), '-')
+    })
 
 
 def test_discriminator(tgan: TimeGAN) -> bool:
@@ -134,7 +159,7 @@ if __name__ == '__main__':
     torch.random.manual_seed(42)
 
     with open('config.yaml', 'r') as f:
-        config = yaml.load(f)
+        config = yaml.load(f, Loader=yaml.FullLoader)
 
     run_name = str(config.values())
 
@@ -144,9 +169,3 @@ if __name__ == '__main__':
     time_gan.train_system()
 
     test_generator(time_gan)
-
-'''
-d -> 10 (2 * seq) -> plot
-g -> face 10 rulari peste prima seq -> mean
-plot -> cu mean si variance
-'''
