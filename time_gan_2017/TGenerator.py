@@ -31,10 +31,14 @@ class LSTMGenerator(nn.Module):
         self.h_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
         self.c_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
 
-    def forward(self, x, d):
+    def forward(self, x, dt):
         batch_size, seq_len = x.size(0), x.size(1)
-        z = torch.cat([x, d], 1)
-        print(z.shape)
+        dt = dt.permute(2, 0, 1)
+        _dt = torch.cat(self.dim_latent * [dt])
+        dt = _dt.permute(1, 2, 0)
+
+        z = torch.cat([x, dt], 1)
+
         h_0 = self.h_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
         c_0 = self.c_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
 

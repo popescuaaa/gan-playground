@@ -19,9 +19,9 @@ class LSTMDiscriminator(nn.Module):
         self.h_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
         self.c_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
 
-    def forward(self, x, d):
+    def forward(self, x, dt):
         batch_size, seq_len = x.size(0), x.size(1)
-        x = torch.cat([x, d], 1)
+        x = torch.cat([x, dt], 1)
 
         h_0 = self.h_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
         c_0 = self.c_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
