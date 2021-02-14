@@ -120,10 +120,17 @@ class SinWaveDataset(Dataset):
 
         # Create two structures for data and ∆t
         self.sine_wave_data = [torch.from_numpy(np.array(self.df.Wave[i: i + self.seq_len]))
-                               for i in range(self.df.size - self.seq_len)]
+                               for i in range(self.df.size - self.seq_len - 1)]
 
         self.dt_data = [torch.from_numpy(np.array(self.df.dt[i: i + self.seq_len]))
-                        for i in range(self.df.size - self.seq_len)]
+                        for i in range(self.df.size - self.seq_len - 1)]
+
+        # Filter for small size chunks
+        self.sine_wave_data = list(filter(lambda t: t.shape[0] == seq_len, self.sine_wave_data))
+        self.dt_data = list(filter(lambda t: t.shape[0] == seq_len, self.dt_data))
+
+        self.sine_wave_data = self.sine_wave_data[:len(self.sine_wave_data) - 2]  # size problem
+        self.dt_data = self.dt_data[:len(self.dt_data) - 2]  # size problem
 
     def __len__(self):
         return len(self.sine_wave_data)
@@ -133,3 +140,12 @@ class SinWaveDataset(Dataset):
 
     def sample_dt(self):
         return choice(self.dt_data)
+
+
+if __name__ == '__main__':
+    path = './csv/sinewave.csv'
+    ds = SinWaveDataset(path, 100)
+    dl = DataLoader(ds, batch_size=10, num_workers=10, shuffle=False)
+    for idx, e in enumerate(dl):
+        d, dt = e
+        print('For current idx: {} we have x: {} and dt: {}'.format(idx, d.shape, dt.shape))
