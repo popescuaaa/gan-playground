@@ -2,6 +2,8 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import torch
 import numpy as np
+import pandas as pd
+from random import choice  # for dt sampling
 
 DATASET_CONFIG = ['Open' 'High' 'Low' 'Close' 'Adj_Close' 'Volume']
 
@@ -62,7 +64,7 @@ class StockDatasetDeltas(Dataset):
 
             # Added starting value as 0 to match sizes in G and D
             deltas = np.concatenate([np.array([0]),
-                                    deltas])
+                                     deltas])
 
             tensor_like_deltas.append(deltas)
             tensor_like_data.append(self.data[idx: idx + seq_len])
@@ -103,5 +105,31 @@ def test_deltas_stock_dataset() -> None:
         break
 
 
-if __name__ == '__main__':
-    test_deltas_stock_dataset()
+class SinWaveDataset(Dataset):
+    def __init__(self, csv_path: str, seq_len: int):
+        self.seq_len = seq_len
+        self.df = pd.read_csv(csv_path)
+
+        # Compute ∆t (deltas)
+        self.dt = np.array([(self.df.Wave[i + 1] - self.df.Wave[i])
+                            for i in range(self.df.Wave.size - 1)])
+        self.dt = np.concatenate([np.array([0]), self.dt])
+
+        # Append ∆t (deltas)
+        self.df.insert(1, 'dt', self.dt)
+
+        # Create two structures for data and ∆t
+        self.sine_wave_data = [torch.from_numpy(np.array(self.df.Wave[i: i + self.seq_len]))
+                               for i in range(self.df.size - self.seq_len)]
+
+        self.dt_data = [torch.from_numpy(np.array(self.df.dt[i: i + self.seq_len]))
+                        for i in range(self.df.size - self.seq_len)]
+
+    def __len__(self):
+        return len(self.sine_wave_data)
+
+    def __getitem__(self, idx: int):
+        return self.sine_wave_data[idx], self.dt_data[idx]
+
+    def sample_dt(self):
+        return choice(self.dt_data)
