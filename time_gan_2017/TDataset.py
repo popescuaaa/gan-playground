@@ -33,8 +33,8 @@ class StockDataset(Dataset):
         self.stock_data = list(filter(lambda t: t.shape[0] == seq_len, self.stock_data))
         self.dt_data = list(filter(lambda t: t.shape[0] == seq_len, self.dt_data))
 
-        self.stock_data = self.stock_data[:len(self.stock_data) - 2]  # size problem
-        self.dt_data = self.dt_data[:len(self.dt_data) - 2]  # size problem
+        self.stock_data = self.stock_data[:len(self.stock_data) - 6]  # size problem
+        self.dt_data = self.dt_data[:len(self.dt_data) - 6]  # size problem
 
     def __len__(self):
         return len(self.stock_data)
@@ -94,4 +94,3 @@ if __name__ == '__main__':
     for idx, (data, dt) in enumerate(dl):
         print(data.shape)
         print(dt.shape)
-        break

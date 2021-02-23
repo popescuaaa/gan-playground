@@ -1,6 +1,6 @@
 from TGenerator import LSTMGenerator
 from TDiscriminator import LSTMDiscriminator
-from TDataset import SinWaveDataset
+from TDataset import StockDataset
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn as nn
@@ -34,11 +34,11 @@ class TimeGAN:
         self.learning_rate = float(cfg['system']['learning_rate'])
         self.num_epochs = int(cfg['system']['num_epochs'])
 
-        self.g = LSTMGenerator(self.g_dim_latent, self.g_dim_output, self.g_num_layers, self.g_dim_hidden).cuda()
-        self.d = LSTMDiscriminator(self.d_dim_input, self.d_num_layers, self.d_dim_hidden).cuda()
+        self.g = LSTMGenerator(self.g_dim_latent, self.g_dim_output, self.g_num_layers, self.g_dim_hidden)
+        self.d = LSTMDiscriminator(self.d_dim_input, self.d_num_layers, self.d_dim_hidden)
 
         # Data
-        self.ds = SinWaveDataset('./csv/sinewave.csv', seq_len=self.seq_len)
+        self.ds = StockDataset('./csv/stock_data.csv', seq_len=10, config='Close')
         self.dl = DataLoader(self.ds, self.batch_size, shuffle=False, num_workers=10)
 
         # Optimizer
@@ -92,14 +92,11 @@ class TimeGAN:
 
                 data = data.view(*data.shape, 1)
                 data = data.float()
-                data = data.cuda()
 
                 dt = dt.view(*dt.shape, 1)
                 dt = dt.float()
-                dt = dt.cuda()
 
                 noise_data = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
-                noise_data = noise_data.cuda()
 
                 loss_g = self.train_generator(noise_data, dt)
                 loss_d, fake = self.train_discriminator(data, dt, noise_data)
