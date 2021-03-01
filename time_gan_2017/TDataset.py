@@ -9,9 +9,10 @@ DATASET_CONFIG = ['Open', 'High', 'Low', 'Close']  # for test purpose
 
 
 class StockDataset(Dataset):
-    def __init__(self, csv_path: str, seq_len: int, config: str):
+    def __init__(self, csv_path: str, seq_len: int, config: str, deltas_only: bool = False):
         assert (config in DATASET_CONFIG), 'Config element is not supported'
         self.seq_len = seq_len
+        self.deltas_only = deltas_only
         self.df = pd.read_csv(csv_path)
 
         # Compute ∆t (deltas)
@@ -23,24 +24,27 @@ class StockDataset(Dataset):
         self.df.insert(DATASET_CONFIG.index(config) + 1, 'dt', self.dt)
 
         # Create two structures for data and ∆t
-        self.stock_data = [torch.from_numpy(np.array(self.df[config][i: i + self.seq_len]))
-                           for i in range(self.df.size - self.seq_len - 1)]
+        self.stock_data = [torch.from_numpy(np.array(self.df[config][i:i + self.seq_len]))
+                           for i in range(0, self.df.shape[0] - self.seq_len)]
 
         self.dt_data = [torch.from_numpy(np.array(self.df.dt[i: i + self.seq_len]))
-                        for i in range(self.df.size - self.seq_len - 1)]
+                        for i in range(0, self.df.shape[0] - self.seq_len)]
 
         # Filter for small size chunks
         self.stock_data = list(filter(lambda t: t.shape[0] == seq_len, self.stock_data))
         self.dt_data = list(filter(lambda t: t.shape[0] == seq_len, self.dt_data))
 
-        self.stock_data = self.stock_data[:len(self.stock_data) - 6]  # size problem
-        self.dt_data = self.dt_data[:len(self.dt_data) - 6]  # size problem
+        # self.stock_data = self.stock_data[:len(self.stock_data) - 6]  # size problem
+        # self.dt_data = self.dt_data[:len(self.dt_data) - 6]  # size problem
 
     def __len__(self):
         return len(self.stock_data)
 
     def __getitem__(self, idx: int):
-        return self.stock_data[idx], self.dt_data[idx]
+        if self.deltas_only:
+            return self.dt_data[idx]
+        else:
+            return self.stock_data[idx], self.dt_data[idx]
 
 
 class SinWaveDataset(Dataset):
@@ -58,10 +62,10 @@ class SinWaveDataset(Dataset):
 
         # Create two structures for data and ∆t
         self.sine_wave_data = [torch.from_numpy(np.array(self.df.Wave[i: i + self.seq_len]))
-                               for i in range(self.df.size - self.seq_len - 1)]
+                               for i in range(self.df.shape[0] - self.seq_len - 1)]
 
         self.dt_data = [torch.from_numpy(np.array(self.df.dt[i: i + self.seq_len]))
-                        for i in range(self.df.size - self.seq_len - 1)]
+                        for i in range(self.df.shape[0] - self.seq_len - 1)]
 
         # Filter for small size chunks
         self.sine_wave_data = list(filter(lambda t: t.shape[0] == seq_len, self.sine_wave_data))
@@ -81,16 +85,13 @@ class SinWaveDataset(Dataset):
 
 
 if __name__ == '__main__':
-    # path = './csv/sinewave.csv'
-    # ds = SinWaveDataset(path, 100)
-    # dl = DataLoader(ds, batch_size=10, num_workers=10, shuffle=False)
-    # for idx, e in enumerate(dl):
-    #     d, dt = e
-    #     print('For current idx: {} we have x: {} and dt: {}'.format(idx, d.shape, dt.shape))
+    path = './csv/sinewave.csv'
+    ds = SinWaveDataset(path, 100)
+    dl = DataLoader(ds, batch_size=10, num_workers=10, shuffle=False)
+    for idx, e in enumerate(dl):
+        d, dt = e
+        print('For current idx: {} we have x: {} and dt: {}'.format(idx, d.shape, dt.shape))
 
     path = './csv/stock_data.csv'
-    ds = StockDataset(path, 10, 'Close')
+    ds = StockDataset(path, 10, 'Close', deltas_only=True)
     dl = DataLoader(ds, batch_size=10, shuffle=False, num_workers=10)
-    for idx, (data, dt) in enumerate(dl):
-        print(data.shape)
-        print(dt.shape)
