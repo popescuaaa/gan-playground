@@ -42,3 +42,7 @@ class LSTMGenerator(nn.Module):
         recurrent_features, _ = self.lstm(z, (h_0, c_0))
         outputs = self.linear(recurrent_features.contiguous())
         return outputs
+
+    @property
+    def device(self):
+        return next(self.parameters()).device

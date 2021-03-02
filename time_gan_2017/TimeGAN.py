@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn as nn
 import torch
-
+import datetime
 import wandb
 import yaml
 
@@ -14,6 +14,10 @@ from plot import plot_time_series
 
 class TimeGAN:
     def __init__(self, cfg):
+        # cuda
+        self.use_cuda = torch. torch.cuda.is_available()
+        self.device = torch.device("cuda:0" if self.use_cuda else "cpu")
+
         # discriminator
         self.d_num_layers = int(cfg['d']['d_num_layers'])
         self.d_dim_hidden = int(cfg['d']['d_dim_hidden'])
@@ -34,8 +38,14 @@ class TimeGAN:
         self.learning_rate = float(cfg['system']['learning_rate'])
         self.num_epochs = int(cfg['system']['num_epochs'])
 
-        self.g = LSTMGenerator(self.g_dim_latent, self.g_dim_output, self.g_num_layers, self.g_dim_hidden)
-        self.d = LSTMDiscriminator(self.d_dim_input, self.d_num_layers, self.d_dim_hidden)
+        self.g = LSTMGenerator(self.g_dim_latent,
+                               self.g_dim_output,
+                               self.g_num_layers,
+                               self.g_dim_hidden).to(self.device)
+
+        self.d = LSTMDiscriminator(self.d_dim_input,
+                                   self.d_num_layers,
+                                   self.d_dim_hidden).to(self.device)
 
         # Data
         self.ds = StockDataset('./csv/AAPL.csv', seq_len=10, config='Close', deltas_only=False)
@@ -92,11 +102,14 @@ class TimeGAN:
 
                 stock = stock.view(*stock.shape, 1)
                 stock = stock.float()
+                stock = stock.to(self.device)
 
                 dt = dt.view(*dt.shape, 1)
                 dt = dt.float()
+                dt = dt.to(self.device)
 
                 noise_stock = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
+                noise_stock = noise_stock.to(self.device)
 
                 loss_g = self.train_generator(noise_stock, dt)
                 loss_d, fake = self.train_discriminator(noise_stock, stock, dt)
@@ -153,7 +166,7 @@ if __name__ == '__main__':
     with open('config.yaml', 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    run_name = str(config.values())
+    run_name = str('RCGAN: apple dataset {} \n'.format(datetime.datetime.now()) + str(config.values()))
 
     # wandb.init(config=config, project='time-gan-2017', name=run_name)
 

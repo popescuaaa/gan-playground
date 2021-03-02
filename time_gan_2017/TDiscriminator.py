@@ -33,3 +33,7 @@ class LSTMDiscriminator(nn.Module):
         recurrent_features = recurrent_features[:, -1, :]
         outputs = self.linear(recurrent_features.contiguous())
         return outputs
+
+    @property
+    def device(self):
+        return next(self.parameters()).device
