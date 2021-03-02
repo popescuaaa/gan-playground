@@ -38,7 +38,7 @@ class TimeGAN:
         self.d = LSTMDiscriminator(self.d_dim_input, self.d_num_layers, self.d_dim_hidden)
 
         # Data
-        self.ds = StockDataset('./csv/stock_data.csv', seq_len=10, config='Close')
+        self.ds = StockDataset('./csv/AAPL.csv', seq_len=10, config='Close', deltas_only=False)
         self.dl = DataLoader(self.ds, self.batch_size, shuffle=False, num_workers=10)
 
         # Optimizer
@@ -47,16 +47,16 @@ class TimeGAN:
 
         self.criterion = nn.BCEWithLogitsLoss()
 
-    def train_discriminator(self, data, dt, noise_data):
+    def train_discriminator(self, noise_stock, stock, dt):
 
         self.d_optimizer.zero_grad()
         self.d.train()
         self.d.requires_grad_(True)
         self.g.requires_grad_(False)
 
-        fake = self.g(noise_data, dt)
+        fake = self.g(noise_stock, dt)
 
-        d_real = self.d(data, dt)
+        d_real = self.d(stock, dt)
         d_fake = self.d(fake, dt)
 
         loss_fake = self.criterion(d_fake, torch.zeros_like(d_fake))
@@ -69,13 +69,13 @@ class TimeGAN:
 
         return loss, fake
 
-    def train_generator(self, noise_data, dt):
+    def train_generator(self, noise_stock, dt):
         self.g_optimizer.zero_grad()
         self.g.train()
         self.d.requires_grad_(False)
         self.g.requires_grad_(True)
 
-        fake = self.g(noise_data, dt)
+        fake = self.g(noise_stock, dt)
         output = self.d(fake, dt)
 
         loss = -1 * output.mean()
@@ -88,18 +88,18 @@ class TimeGAN:
     def train_system(self):
         for epoch in range(self.num_epochs):
             for batch_idx, real in enumerate(self.dl):
-                data, dt = real
+                stock, dt = real
 
-                data = data.view(*data.shape, 1)
-                data = data.float()
+                stock = stock.view(*stock.shape, 1)
+                stock = stock.float()
 
                 dt = dt.view(*dt.shape, 1)
                 dt = dt.float()
 
-                noise_data = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
+                noise_stock = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
 
-                loss_g = self.train_generator(noise_data, dt)
-                loss_d, fake = self.train_discriminator(data, dt, noise_data)
+                loss_g = self.train_generator(noise_stock, dt)
+                loss_d, fake = self.train_discriminator(noise_stock, stock, dt)
 
                 if batch_idx == 0:
                     print(

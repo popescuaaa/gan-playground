@@ -6,9 +6,15 @@ import pandas as pd
 from random import choice  # for dt sampling
 
 DATASET_CONFIG = ['Open', 'High', 'Low', 'Close']  # for test purpose
+STOCK_OFFSET = 9  # offset from default sequence length (dataset dependent)
 
 
 class StockDataset(Dataset):
+    """
+        The stock dataset is adapted to process any csv file that respects the stock market data format
+        in terms of mandatory columns: Date (optional), Open, High, Low, Close, Adj_Close, Volume (optional)
+
+    """
     def __init__(self, csv_path: str, seq_len: int, config: str, deltas_only: bool = False):
         assert (config in DATASET_CONFIG), 'Config element is not supported'
         self.seq_len = seq_len
@@ -34,8 +40,8 @@ class StockDataset(Dataset):
         self.stock_data = list(filter(lambda t: t.shape[0] == seq_len, self.stock_data))
         self.dt_data = list(filter(lambda t: t.shape[0] == seq_len, self.dt_data))
 
-        # self.stock_data = self.stock_data[:len(self.stock_data) - 6]  # size problem
-        # self.dt_data = self.dt_data[:len(self.dt_data) - 6]  # size problem
+        self.stock_data = self.stock_data[:len(self.stock_data) - STOCK_OFFSET]  # size problem
+        self.dt_data = self.dt_data[:len(self.dt_data) - STOCK_OFFSET]  # size problem
 
     def __len__(self):
         return len(self.stock_data)
@@ -85,13 +91,11 @@ class SinWaveDataset(Dataset):
 
 
 if __name__ == '__main__':
-    path = './csv/sinewave.csv'
-    ds = SinWaveDataset(path, 100)
-    dl = DataLoader(ds, batch_size=10, num_workers=10, shuffle=False)
-    for idx, e in enumerate(dl):
-        d, dt = e
-        print('For current idx: {} we have x: {} and dt: {}'.format(idx, d.shape, dt.shape))
-
-    path = './csv/stock_data.csv'
-    ds = StockDataset(path, 10, 'Close', deltas_only=True)
+    path = './csv/AAPL.csv'
+    ds = StockDataset(path, 10, 'Close', deltas_only=False)
+    print(len(ds))
     dl = DataLoader(ds, batch_size=10, shuffle=False, num_workers=10)
+    for index, real in enumerate(dl):
+        stock, dt = real
+        print(stock.shape)
+        print(dt.shape)
