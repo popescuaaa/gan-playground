@@ -34,7 +34,7 @@ class LSTMGenerator(nn.Module):
     def forward(self, noise_stock, dt):
         batch_size, seq_len = noise_stock.size(0), noise_stock.size(1)
 
-        z = torch.cat([noise_stock, dt], 2)  # 10, 10, 128 | 10, 10, 1 (dt) => 10, 10, 129
+        z = torch.cat([noise_stock, dt], 2)
 
         h_0 = self.h_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
         c_0 = self.c_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)

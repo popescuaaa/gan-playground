@@ -1,7 +1,7 @@
 system:
   batch_size: 10
-  seq_len: 10
-  learning_rate: 0.1
+  seq_len: 20
+  learning_rate: 1e-3
   num_epochs: 100
 
 d:

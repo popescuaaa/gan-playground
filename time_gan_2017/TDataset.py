@@ -92,7 +92,7 @@ class SinWaveDataset(Dataset):
 
 if __name__ == '__main__':
     path = './csv/AAPL.csv'
-    ds = StockDataset(path, 10, 'Close', deltas_only=False)
+    ds = StockDataset(path, 50, 'Close', deltas_only=False)
     print(len(ds))
     dl = DataLoader(ds, batch_size=10, shuffle=False, num_workers=10)
     for index, real in enumerate(dl):

@@ -15,7 +15,7 @@ from plot import plot_time_series
 class TimeGAN:
     def __init__(self, cfg):
         # cuda
-        self.use_cuda = torch. torch.cuda.is_available()
+        self.use_cuda = torch.torch.cuda.is_available()
         self.device = torch.device("cuda:0" if self.use_cuda else "cpu")
 
         # discriminator
@@ -48,7 +48,7 @@ class TimeGAN:
                                    self.d_dim_hidden).to(self.device)
 
         # Data
-        self.ds = StockDataset('./csv/AAPL.csv', seq_len=10, config='Close', deltas_only=False)
+        self.ds = StockDataset('./csv/AAPL.csv', seq_len=self.seq_len, config='Close')
         self.dl = DataLoader(self.ds, self.batch_size, shuffle=False, num_workers=10)
 
         # Optimizer
@@ -93,9 +93,42 @@ class TimeGAN:
         loss.backward()
         self.g_optimizer.step()
 
-        return loss
+        return loss, fake
 
     def train_system(self):
+        for epoch in range(self.num_epochs // 4):
+            for batch_idx, real in enumerate(self.dl):
+                stock, dt = real
+
+                stock = stock.view(*stock.shape, 1)
+                stock = stock.float()
+                stock = stock.to(self.device)
+
+                dt = dt.view(*dt.shape, 1)
+                dt = dt.float()
+                dt = dt.to(self.device)
+
+                noise_stock = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
+                noise_stock = noise_stock.to(self.device)
+
+                loss_g, fake = self.train_generator(noise_stock, dt)
+
+                if batch_idx == 0:
+                    print(
+                        f"Epoch [{epoch}/{self.num_epochs // 4}] Batch {batch_idx}/{len(self.dl)} loss G: {loss_g:.4f}"
+                    )
+
+                    wandb.log({
+                        'epoch': epoch,
+                        'g loss': loss_g,
+                        'Conditional on deltas fake sample': plot_time_series(
+                            fake[0].view(-1).detach().cpu().numpy(),
+                            '[Conditional (on deltas)] Fake sample'),
+                        'Real sample': plot_time_series(
+                            stock[0].view(-1).cpu().numpy(),
+                            '[Conditional (on deltas)] Real sample')
+                    })
+
         for epoch in range(self.num_epochs):
             for batch_idx, real in enumerate(self.dl):
                 stock, dt = real
@@ -111,7 +144,7 @@ class TimeGAN:
                 noise_stock = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
                 noise_stock = noise_stock.to(self.device)
 
-                loss_g = self.train_generator(noise_stock, dt)
+                loss_g, _ = self.train_generator(noise_stock, dt)
                 loss_d, fake = self.train_discriminator(noise_stock, stock, dt)
 
                 if batch_idx == 0:
@@ -120,43 +153,17 @@ class TimeGAN:
                           Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
                     )
 
-                    # wandb.log({
-                    #     'epoch': epoch,
-                    #     'd loss': loss_d,
-                    #     'g loss': loss_g,
-                    #     'Conditional on deltas fake sample': plot_time_series(
-                    #         fake[0].view(-1).detach().cpu().numpy(),
-                    #         '[Conditional (on deltas)] Fake sample'),
-                    #     'Real sample': plot_time_series(
-                    #         data[0].view(-1).cpu().numpy(),
-                    #         '[Conditional (on deltas)] Real sample')
-                    # })
-
-
-def system_test(tgan: TimeGAN) -> None:
-    noise_data = tgan.dist_latent.sample(sample_shape=(tgan.batch_size, tgan.seq_len, tgan.g_dim_latent))
-    noise_data = noise_data.cuda()
-
-    # Sample dt from dataset
-    dt = tgan.ds.sample_dt()
-
-    fake = tgan.g(noise_data, dt)
-    fakes = [fake.view(-1).detach().cpu()]
-
-    for _ in range(9):
-        noise_data = tgan.dist_latent.sample(sample_shape=(tgan.batch_size, tgan.seq_len, tgan.g_dim_latent))
-        noise_data = noise_data.cuda()
-
-        noise_deltas = tgan.dist_latent.sample(sample_shape=(tgan.batch_size, tgan.seq_len, tgan.g_dim_latent))
-        noise_deltas = noise_deltas.cuda()
-
-        fakes.append(tgan.g(noise_data, noise_deltas).view(-1).detach().cpu())
-
-    fake_mean = sum(fakes) / len(fakes)
-
-    wandb.log({
-        'Generated sample for RCGAN': plot_time_series(fake_mean.numpy(), '-')
-    })
+                    wandb.log({
+                        'epoch': epoch,
+                        'd loss': loss_d,
+                        'g loss': loss_g,
+                        'Conditional on deltas fake sample': plot_time_series(
+                            fake[0].view(-1).detach().cpu().numpy(),
+                            '[Conditional (on deltas)] Fake sample'),
+                        'Real sample': plot_time_series(
+                            stock[0].view(-1).cpu().numpy(),
+                            '[Conditional (on deltas)] Real sample')
+                    })
 
 
 if __name__ == '__main__':
@@ -168,9 +175,7 @@ if __name__ == '__main__':
 
     run_name = str('RCGAN: apple dataset {} \n'.format(datetime.datetime.now()) + str(config.values()))
 
-    # wandb.init(config=config, project='time-gan-2017', name=run_name)
+    wandb.init(config=config, project='time-gan-2017', name=run_name)
 
     time_gan = TimeGAN(config)
     time_gan.train_system()
-
-    # test_generator(time_gan)
