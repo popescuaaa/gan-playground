@@ -10,6 +10,7 @@ import wandb
 import yaml
 
 from plot import plot_time_series
+from sklearn.metrics import mean_absolute_error
 
 
 class TimeGAN:
@@ -69,8 +70,8 @@ class TimeGAN:
         d_real = self.d(stock, dt)
         d_fake = self.d(fake, dt)
 
-        loss_fake = self.criterion(d_fake, torch.zeros_like(d_fake))
         loss_real = self.criterion(d_real, torch.ones_like(d_real))
+        loss_fake = self.criterion(d_fake, torch.zeros_like(d_fake))
 
         loss = 0.5 * loss_fake + 0.5 * loss_real
 
@@ -96,39 +97,6 @@ class TimeGAN:
         return loss, fake
 
     def train_system(self):
-        for epoch in range(self.num_epochs // 4):
-            for batch_idx, real in enumerate(self.dl):
-                stock, dt = real
-
-                stock = stock.view(*stock.shape, 1)
-                stock = stock.float()
-                stock = stock.to(self.device)
-
-                dt = dt.view(*dt.shape, 1)
-                dt = dt.float()
-                dt = dt.to(self.device)
-
-                noise_stock = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
-                noise_stock = noise_stock.to(self.device)
-
-                loss_g, fake = self.train_generator(noise_stock, dt)
-
-                if batch_idx == 0:
-                    print(
-                        f"Epoch [{epoch}/{self.num_epochs // 4}] Batch {batch_idx}/{len(self.dl)} loss G: {loss_g:.4f}"
-                    )
-
-                    wandb.log({
-                        'epoch': epoch,
-                        'g loss': loss_g,
-                        'Conditional on deltas fake sample': plot_time_series(
-                            fake[0].view(-1).detach().cpu().numpy(),
-                            '[Conditional (on deltas)] Fake sample'),
-                        'Real sample': plot_time_series(
-                            stock[0].view(-1).cpu().numpy(),
-                            '[Conditional (on deltas)] Real sample')
-                    })
-
         for epoch in range(self.num_epochs):
             for batch_idx, real in enumerate(self.dl):
                 stock, dt = real
@@ -145,7 +113,7 @@ class TimeGAN:
                 noise_stock = noise_stock.to(self.device)
 
                 loss_g, _ = self.train_generator(noise_stock, dt)
-                loss_d, fake = self.train_discriminator(noise_stock, stock, dt)
+                loss_d, fake = self.train_discriminator(noise_stock, stock, dt + stock.mean())
 
                 if batch_idx == 0:
                     print(
@@ -157,12 +125,14 @@ class TimeGAN:
                         'epoch': epoch,
                         'd loss': loss_d,
                         'g loss': loss_g,
+                        'mae': mean_absolute_error(stock[0].view(-1).cpu().numpy(),
+                                                   fake[0].view(-1).detach().cpu().numpy()),
                         'Conditional on deltas fake sample': plot_time_series(
                             fake[0].view(-1).detach().cpu().numpy(),
                             '[Conditional (on deltas)] Fake sample'),
                         'Real sample': plot_time_series(
                             stock[0].view(-1).cpu().numpy(),
-                            '[Conditional (on deltas)] Real sample')
+                            '[Corresponding] Real sample')
                     })
 
 

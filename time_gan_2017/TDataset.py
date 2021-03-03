@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 import torch
 import numpy as np
 import pandas as pd
-from random import choice  # for dt sampling
+from random import choice  # for data sampling
 
 DATASET_CONFIG = ['Open', 'High', 'Low', 'Close']  # for test purpose
 STOCK_OFFSET = 9  # offset from default sequence length (dataset dependent)
@@ -15,10 +15,9 @@ class StockDataset(Dataset):
         in terms of mandatory columns: Date (optional), Open, High, Low, Close, Adj_Close, Volume (optional)
 
     """
-    def __init__(self, csv_path: str, seq_len: int, config: str, deltas_only: bool = False):
+    def __init__(self, csv_path: str, seq_len: int, config: str):
         assert (config in DATASET_CONFIG), 'Config element is not supported'
         self.seq_len = seq_len
-        self.deltas_only = deltas_only
         self.df = pd.read_csv(csv_path)
 
         # Compute ∆t (deltas)
@@ -47,11 +46,11 @@ class StockDataset(Dataset):
         return len(self.stock_data)
 
     def __getitem__(self, idx: int):
-        if self.deltas_only:
-            return self.dt_data[idx]
-        else:
-            return self.stock_data[idx], self.dt_data[idx]
+        return self.stock_data[idx], self.dt_data[idx]
 
+    def sample(self):
+        random_idx = choice([i for i in range(len(self.stock_data))])
+        return self.stock_data[random_idx], self.dt_data[random_idx]
 
 class SinWaveDataset(Dataset):
     def __init__(self, csv_path: str, seq_len: int):
