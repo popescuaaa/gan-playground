@@ -17,7 +17,7 @@ class TimeGAN:
     def __init__(self, cfg):
         # cuda
         self.use_cuda = torch.torch.cuda.is_available()
-        self.device = torch.device("cuda:0" if self.use_cuda else "cpu")
+        self.device = torch.device(cfg['system']['device'] if self.use_cuda else "cpu")
 
         # discriminator
         self.d_num_layers = int(cfg['d']['d_num_layers'])
@@ -76,6 +76,9 @@ class TimeGAN:
         loss = 0.5 * loss_fake + 0.5 * loss_real
 
         loss.backward()
+
+        # loss = -torch.log(torch.sigmoid(d_real - d_fake)).mean()
+
         self.d_optimizer.step()
 
         return loss, fake
@@ -90,6 +93,7 @@ class TimeGAN:
         output = self.d(fake, dt)
 
         loss = -1 * output.mean()
+        # loss = -torch.log(torch.sigmoid(fake - stock))
 
         loss.backward()
         self.g_optimizer.step()
@@ -113,7 +117,7 @@ class TimeGAN:
                 noise_stock = noise_stock.to(self.device)
 
                 loss_g, _ = self.train_generator(noise_stock, dt)
-                loss_d, fake = self.train_discriminator(noise_stock, stock, dt + stock.mean())
+                loss_d, fake = self.train_discriminator(noise_stock, stock, dt)
 
                 if batch_idx == 0:
                     print(
@@ -127,6 +131,7 @@ class TimeGAN:
                         'g loss': loss_g,
                         'mae': mean_absolute_error(stock[0].view(-1).cpu().numpy(),
                                                    fake[0].view(-1).detach().cpu().numpy()),
+                        # torch.abs(fake - stock).mean().item() => mae
                         'Conditional on deltas fake sample': plot_time_series(
                             fake[0].view(-1).detach().cpu().numpy(),
                             '[Conditional (on deltas)] Fake sample'),
@@ -143,7 +148,7 @@ if __name__ == '__main__':
     with open('config.yaml', 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    run_name = str('RCGAN: apple dataset {} \n'.format(datetime.datetime.now()) + str(config.values()))
+    run_name = str('RCGAN: {} {} \n'.format(config['run_name'], datetime.datetime.now()) + str(config.values()))
 
     wandb.init(config=config, project='time-gan-2017', name=run_name)
 

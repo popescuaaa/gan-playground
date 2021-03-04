@@ -14,7 +14,7 @@ class LSTMDiscriminator(nn.Module):
         self.dim_input = dim_input
 
         self.lstm = nn.LSTM(self.dim_input + 1, self.dim_hidden, self.num_layers, batch_first=True)
-        self.linear = nn.Sequential(nn.Linear(self.dim_hidden, 1))
+        self.linear = nn.Sequential(nn.Linear(self.dim_hidden, 1))  # +1 for mean value added to push values
 
         self.h_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
         self.c_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))

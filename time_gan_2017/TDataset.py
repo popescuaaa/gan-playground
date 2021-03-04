@@ -15,6 +15,7 @@ class StockDataset(Dataset):
         in terms of mandatory columns: Date (optional), Open, High, Low, Close, Adj_Close, Volume (optional)
 
     """
+
     def __init__(self, csv_path: str, seq_len: int, config: str):
         assert (config in DATASET_CONFIG), 'Config element is not supported'
         self.seq_len = seq_len
@@ -51,6 +52,7 @@ class StockDataset(Dataset):
     def sample(self):
         random_idx = choice([i for i in range(len(self.stock_data))])
         return self.stock_data[random_idx], self.dt_data[random_idx]
+
 
 class SinWaveDataset(Dataset):
     def __init__(self, csv_path: str, seq_len: int):

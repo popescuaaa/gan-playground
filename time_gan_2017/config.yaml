@@ -1,8 +1,11 @@
+run_name: 'APPLE dataset'
+
 system:
-  batch_size: 10
-  seq_len: 20
-  learning_rate: 1e-3
+  batch_size: 5
+  seq_len: 40
+  learning_rate: 1e-4
   num_epochs: 100
+  device: 'cuda:0'
 
 d:
   d_num_layers: 1
