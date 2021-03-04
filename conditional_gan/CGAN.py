@@ -100,6 +100,7 @@ class GAN:
             for batch_idx, (real, labels) in enumerate(self.loader):
                 real = real.view(-1, 784).cuda()
                 c = torch.nn.functional.one_hot(labels).cuda()
+
                 if c.shape[1] == 10:  # is 9 somehow and somewhere in the process
                     batch_size = real.shape[0]
                     noise = self.g.sample(batch_size).cuda()
