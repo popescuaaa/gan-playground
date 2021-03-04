@@ -58,7 +58,7 @@ class TimeGAN:
 
         self.criterion = nn.BCEWithLogitsLoss()
 
-    def train_discriminator(self, noise_stock, stock, dt):
+    def train_discriminator(self, noise_stock, stock, dt, mean):
 
         self.d_optimizer.zero_grad()
         self.d.train()
@@ -67,8 +67,8 @@ class TimeGAN:
 
         fake = self.g(noise_stock, dt)
 
-        d_real = self.d(stock, dt)
-        d_fake = self.d(fake, dt)
+        d_real = self.d(stock, dt, mean)
+        d_fake = self.d(fake, dt, mean)
 
         loss_real = self.criterion(d_real, torch.ones_like(d_real))
         loss_fake = self.criterion(d_fake, torch.zeros_like(d_fake))
@@ -83,14 +83,14 @@ class TimeGAN:
 
         return loss, fake
 
-    def train_generator(self, noise_stock, dt):
+    def train_generator(self, noise_stock, dt, mean):
         self.g_optimizer.zero_grad()
         self.g.train()
         self.d.requires_grad_(False)
         self.g.requires_grad_(True)
 
         fake = self.g(noise_stock, dt)
-        output = self.d(fake, dt)
+        output = self.d(fake, dt, mean)
 
         loss = -1 * output.mean()
         # loss = -torch.log(torch.sigmoid(fake - stock))
@@ -109,6 +109,8 @@ class TimeGAN:
                 stock = stock.float()
                 stock = stock.to(self.device)
 
+                mean = stock.mean()
+
                 dt = dt.view(*dt.shape, 1)
                 dt = dt.float()
                 dt = dt.to(self.device)
@@ -116,8 +118,8 @@ class TimeGAN:
                 noise_stock = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
                 noise_stock = noise_stock.to(self.device)
 
-                loss_g, _ = self.train_generator(noise_stock, dt)
-                loss_d, fake = self.train_discriminator(noise_stock, stock, dt)
+                loss_g, _ = self.train_generator(noise_stock, dt, mean)
+                loss_d, fake = self.train_discriminator(noise_stock, stock, dt, mean)
 
                 if batch_idx == 0:
                     print(
