@@ -31,7 +31,7 @@ class LSTMDiscriminator(nn.Module):
         # Basically, the output of a lstm also contains a pair (h_n, c_n) last hidden state, last cell state
         recurrent_features, _ = self.lstm(stock, (h_0, c_0))
         recurrent_features = recurrent_features[:, -1, :]
-        mean = mean.unsqueeze(0).repeat(batch_size).view(batch_size, 1)
+        mean = mean.repeat(batch_size).view(batch_size, 1)
         features = torch.cat([mean, recurrent_features.contiguous()], 1)
         outputs = self.linear(features)
         return outputs
