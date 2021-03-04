@@ -1,16 +1,13 @@
-- [X] Make an organized version
-- [X] Show generator examples
-    - [X] plot loss for G and D
-    - [] save a picture with last result
-- [X] CGAN current framework in new branch
-    - [] improve performance for CGAN
-- [] CGAN visual samples
-    - [] plot loss for G and D
-    - [] CGAN with conv nets
-- [] custom loss function
-- [] make yaml config with all stable version parameters
- ---
-- [] Time GAN in new Branch
-    - [] get data for financial market and plot them
-    - [] implement timeGAN
-    - [] plot timeGAN results
+# Time GAN - RNN version
+
+---
+
+TODOs:
+    
+plotting -> stocks
+
+Main purpose: starting from x[1:5] + dt => x[6:10]
+- diff [-5] => diff [ next 5 ]
+- init value -> new ts -> 10
+- values range
+h0, c0 = z (learn from dt) per run needs to be random
