@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 def convert_score_to_label(scores, is_logit=True, threshold=0.5) -> torch.Tensor:
     if is_logit:
-        p = F.sigmoid(scores)
+        p = torch.sigmoid(scores)
     else:
         p = scores
     if threshold:

@@ -110,3 +110,4 @@ class GAN:
                     logits = self.d(fake_data)
                     fake_grid = create_grid_plot(fake_data, logits)
                     plt.show()
+

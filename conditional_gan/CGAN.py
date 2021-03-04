@@ -12,12 +12,6 @@ from utils import *
 import matplotlib.pyplot as plt
 
 
-def make_one_hot(target: int, num_classes=10):
-    target = torch.ones(size=(10,)) * target
-    target = (target == torch.arange(num_classes))
-    return target.type(torch.FloatTensor)
-
-
 class GAN:
     def __init__(self):
         torch.random.manual_seed(42)
@@ -28,7 +22,7 @@ class GAN:
         self.dim_input_d = 28 * 28
         self.batch_size = 64
         self.learning_rate = 1e-4
-        self.num_epochs = 50
+        self.num_epochs = 50  # default for time saving on colab
         self.display_freq = 50
 
         self.d_train_iter = 2  # This is possible to have a relation with TTsUR
@@ -99,8 +93,12 @@ class GAN:
         for epoch in range(self.num_epochs):
             for batch_idx, (real, labels) in enumerate(self.loader):
                 real = real.view(-1, 784).cuda()
+<<<<<<< HEAD
                 c = torch.nn.functional.one_hot(labels).cuda()
 
+=======
+                c = torch.nn.functional.one_hot(labels, num_classes=10).cuda()  # one hot vector
+>>>>>>> master
                 if c.shape[1] == 10:  # is 9 somehow and somewhere in the process
                     batch_size = real.shape[0]
                     noise = self.g.sample(batch_size).cuda()
@@ -115,12 +113,28 @@ class GAN:
                               Loss D: {loss_d:.4f}, loss G: {loss_g:.4f}"
                         )
 
-                        _c = make_one_hot(8)
-                        stack = _c
-                        for i in range(batch_size):
-                            _c = torch.cat([_c, stack], 1)
+                    fake_labels = torch.tensor([0] * batch_size)
+                    condition = torch.nn.functional.one_hot(fake_labels, num_classes=10).cuda()
+                    fake_data = self.g.generate_visual_sample(self.batch_size, condition).detach()
+                    logits = self.d(fake_data, condition)
+                    fake_grid = create_grid_plot(fake_data, logits)
+                    plt.show()
 
-                        fake_data = self.g.generate_visual_sample(self.batch_size, _c).detach()
-                        logits = self.d(fake_data)
-                        fake_grid = create_grid_plot(fake_data, logits)
-                        plt.show()
+
+def generate_digit(digit: int, batch_size: int, gan: GAN):
+    fake_labels = torch.tensor([digit] * batch_size)
+    condition = torch.nn.functional.one_hot(fake_labels, num_classes=10).cuda()
+    fake_data = gan.g.generate_visual_sample(batch_size, condition).detach()
+    logits = gan.d(fake_data, condition)
+    fake_grid = create_grid_plot(fake_data, logits)
+    plt.show()
+    plt.savefig('conditional_gan_' + str(digit))
+
+
+if __name__ == '__main__':
+    gan = GAN()
+    gan.train_system()
+
+    # #  Test on different digits
+    # for i in range(10):
+    #     generate_digit(i, gan.batch_size, gan)
