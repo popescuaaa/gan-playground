@@ -193,7 +193,7 @@ class GANBCEWithLogitsLoss(GANLoss):
         #
         # torch.abs(torch.ones(size=(1, 4)) - 1) IS A VALID OPERATION
         # however we cannot have  nn.L1Loss(torch.ones(size=(1, 4), 1)
-        # even if the two opperations yield the same results from a theoretical standpoint
+        # even if the two opperations yield the same results_apple_dataset from a theoretical standpoint
 
     def __call__(self, x, is_real=True, for_discriminator=True) -> torch.Tensor:
         # avoiding control flows is a desirable but not mandatory
@@ -381,7 +381,7 @@ def run(g: Generator, d: Discriminator, c: GANLoss, cfg):
                 d_device = d.device
                 # when working with GANs it is a good rule of thumbs to save the model at different timesteps
                 # since the GAN behaviour does not analytically allow for strong convergence, a prior iteration
-                # of the system might yield more desirable results
+                # of the system might yield more desirable results_apple_dataset
                 torch.save(g.cpu(), os.path.join(save_path, 'g_model' + '_{}'.format(step)))
                 torch.save(d.cpu(), os.path.join(save_path, 'd_model' + '_{}'.format(step)))
                 # we move the model back to their original devices
