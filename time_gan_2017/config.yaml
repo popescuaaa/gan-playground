@@ -5,7 +5,7 @@ system:
   seq_len: 150
   learning_rate: 1e-4
   num_epochs: 100
-  device: 'cuda:0'
+  device: 'cuda:1'
 
 d:
   d_num_layers: 1
