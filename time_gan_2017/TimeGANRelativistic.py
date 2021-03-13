@@ -50,7 +50,7 @@ class TimeGAN:
 
         # Data
         self.ds = StockDataset('./csv/AAPL.csv', seq_len=self.seq_len, config='Close')
-        self.dl = DataLoader(self.ds, self.batch_size, shuffle=False, num_workers=10)
+        self.dl = DataLoader(self.ds, self.batch_size, shuffle=True, num_workers=10)
 
         # Optimizer
         self.d_optimizer = optim.Adam(list(self.g.parameters()), lr=self.learning_rate / 2)
@@ -70,11 +70,6 @@ class TimeGAN:
         d_real = self.d(stock, dt, mean)
         d_fake = self.d(fake, dt, mean)
 
-        # loss_real = self.criterion(d_real, torch.ones_like(d_real))
-        # loss_fake = self.criterion(d_fake, torch.zeros_like(d_fake))
-        #
-        # loss = 0.5 * loss_fake + 0.5 * loss_real
-
         loss = -torch.log(torch.sigmoid(d_real - d_fake)).mean()
         loss.backward()
         self.d_optimizer.step()
@@ -88,10 +83,10 @@ class TimeGAN:
         self.g.requires_grad_(True)
 
         fake = self.g(noise_stock, dt)
-        output = self.d(fake, dt, mean)
+        d_fake = self.d(fake, dt, mean)
+        d_real = self.d(stock, dt, mean)
 
-        # loss = -1 * output.mean()
-        loss = -torch.log(torch.sigmoid(fake - stock)).mean()
+        loss = -torch.log(torch.sigmoid(d_fake - d_real)).mean()
         loss.backward()
         self.g_optimizer.step()
 
@@ -118,7 +113,7 @@ class TimeGAN:
                 loss_g, _ = self.train_generator(noise_stock, stock, dt, mean)
                 loss_d, fake = self.train_discriminator(noise_stock, stock, dt, mean)
 
-                if batch_idx == 0:
+                if batch_idx == len(self.dl) - 1:
                     print(
                         f"Epoch [{epoch}/{self.num_epochs}] Batch {batch_idx}/{len(self.dl)} \
                           Loss D: {loss_d.detach().cpu().item():.4f}, loss G: {loss_g.detach().cpu().item():.4f}"
@@ -130,7 +125,6 @@ class TimeGAN:
                         'g loss': loss_g.detach().cpu().item(),
                         'mae': mean_absolute_error(stock[0].view(-1).cpu().numpy(),
                                                    fake[0].view(-1).detach().cpu().numpy()),
-                        # torch.abs(fake - stock).mean().item() => mae
                         'Conditional on deltas fake sample': plot_time_series(
                             fake[0].view(-1).detach().cpu().numpy(),
                             '[Conditional (on deltas)] Fake sample'),
@@ -153,3 +147,12 @@ if __name__ == '__main__':
 
     time_gan = TimeGAN(config)
     time_gan.train_system()
+
+    # time_gan.g = time_gan.g.to('cpu')
+    # time_gan.d = time_gan.d.to('cpu')
+    #
+    # torch.save(time_gan.g.state_dict(), './models/time_gan_2017_g.pt')
+    # torch.save(time_gan.d.state_dict(), './models/time_gan_2017_d.pt')
+    #
+    # time_gan.g = time_gan.g.to(config['system']['device'])
+    # time_gan.d = time_gan.d.to(config['system']['device'])

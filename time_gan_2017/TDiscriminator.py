@@ -21,6 +21,7 @@ class LSTMDiscriminator(nn.Module):
 
     def forward(self, stock, dt, mean):
         batch_size, seq_len = stock.size(0), stock.size(1)
+
         _stock = torch.cat([stock, dt], 2)
         stock = _stock
 
