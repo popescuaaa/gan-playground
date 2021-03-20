@@ -59,7 +59,6 @@ class TimeGAN:
         self.criterion = nn.BCEWithLogitsLoss()
 
     def train_discriminator(self, noise_stock, stock, dt, mean):
-
         self.d_optimizer.zero_grad()
         self.d.train()
         self.d.requires_grad_(True)
@@ -110,8 +109,14 @@ class TimeGAN:
                 noise_stock = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
                 noise_stock = noise_stock.to(self.device)
 
-                loss_g, _ = self.train_generator(noise_stock, stock, dt, mean)
-                loss_d, fake = self.train_discriminator(noise_stock, stock, dt, mean)
+                g_iter = 1
+                d_iter = g_iter * 8
+
+                for var_name in range(g_iter):
+                    loss_g, _ = self.train_generator(noise_stock, stock, dt, mean)
+
+                for var_name in range(d_iter):
+                    loss_d, fake = self.train_discriminator(noise_stock, stock, dt, mean)
 
                 if batch_idx == len(self.dl) - 1:
                     print(
@@ -141,7 +146,8 @@ if __name__ == '__main__':
     with open('config.yaml', 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    run_name = str('RCGAN: {} {} \n'.format(config['run_name'], datetime.datetime.now()) + str(config.values()))
+    # run_name = str('RCGAN: {} {} \n'.format(config['run_name'], datetime.datetime.now()) + str(config.values()))
+    run_name = '1g / 8d'
 
     wandb.init(config=config, project='time-gan-2017', name=run_name)
 
