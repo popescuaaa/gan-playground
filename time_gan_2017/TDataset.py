@@ -79,6 +79,9 @@ class StockDataset(Dataset):
     def __getitem__(self, idx: int):
         return self.data[idx]
 
+    def get_real_distribution(self):
+        return np.array(list(map(lambda t: t.numpy(), self.stock_data)))
+
     def sample(self):
         random_idx = choice([i for i in range(len(self.stock_data))])
         return self.stock_data[random_idx], self.dt_data[random_idx]
@@ -88,10 +91,5 @@ if __name__ == '__main__':
     path = './csv/AAPL.csv'
     ds = StockDataset(path, 150, 'Close')
     dl = DataLoader(ds, batch_size=10, shuffle=False)
-    print(len(dl))
-    # for i, real in enumerate(dl):
-    #     stock, dt = real
-    #     stock = stock.view(*stock.shape, 1)
-    #     dt = dt.view(*dt.shape, 1)
-    #     print(stock.shape)
-    #     print(dt.shape)
+    rd = ds.get_real_distribution()
+    print('Real dist: {}'.format(rd))
