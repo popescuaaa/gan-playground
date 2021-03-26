@@ -79,8 +79,13 @@ class StockDataset(Dataset):
     def __getitem__(self, idx: int):
         return self.data[idx]
 
+    def mean_reshape(self, arr: np.array):
+        mean = np.mean(arr)
+        return np.repeat(mean, self.seq_len)
+
     def get_real_distribution(self):
-        return np.array(list(map(lambda t: t.numpy(), self.stock_data)))
+        real_distribution = np.array(list(map(lambda t: t.numpy(), self.stock_data)))
+        return np.array(list(map(self.mean_reshape, real_distribution)))
 
     def sample(self):
         random_idx = choice([i for i in range(len(self.stock_data))])
@@ -92,4 +97,4 @@ if __name__ == '__main__':
     ds = StockDataset(path, 150, 'Close')
     dl = DataLoader(ds, batch_size=10, shuffle=False)
     rd = ds.get_real_distribution()
-    print('Real dist: {}'.format(rd))
+    print('Real dist: {}'.format(len(rd)))
