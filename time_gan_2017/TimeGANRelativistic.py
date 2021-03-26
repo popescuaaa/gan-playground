@@ -5,12 +5,14 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn as nn
 import torch
-import datetime
 import wandb
 import yaml
 
+import numpy as np
+
 from plot import plot_time_series
 from sklearn.metrics import mean_absolute_error
+from metrics import visualization_metrics
 
 
 class TimeGAN:
@@ -23,12 +25,14 @@ class TimeGAN:
         self.d_num_layers = int(cfg['d']['d_num_layers'])
         self.d_dim_hidden = int(cfg['d']['d_dim_hidden'])
         self.d_dim_input = int(cfg['d']['d_dim_input'])
+        self.d_iter = int(cfg['d']['d_iter'])
 
         # generator
         self.g_num_layers = int(cfg['g']['g_num_layers'])
         self.g_dim_hidden = int(cfg['g']['g_dim_hidden'])
         self.g_dim_latent = int(cfg['g']['g_dim_latent'])
         self.g_dim_output = int(cfg['g']['g_dim_output'])
+        self.g_iter = int(cfg['g']['g_iter'])
 
         # Latent distribution
         self.dist_latent = torch.distributions.normal.Normal(loc=0, scale=1)  # Gaussian( 0, 1 )
@@ -64,7 +68,7 @@ class TimeGAN:
         self.d.requires_grad_(True)
         self.g.requires_grad_(False)
 
-        fake = self.g(noise_stock, dt)
+        fake = self.g(noise_stock, dt, mean)
 
         d_real = self.d(stock, dt, mean)
         d_fake = self.d(fake, dt, mean)
@@ -81,7 +85,7 @@ class TimeGAN:
         self.d.requires_grad_(False)
         self.g.requires_grad_(True)
 
-        fake = self.g(noise_stock, dt)
+        fake = self.g(noise_stock, dt, mean)
         d_fake = self.d(fake, dt, mean)
         d_real = self.d(stock, dt, mean)
 
@@ -90,6 +94,35 @@ class TimeGAN:
         self.g_optimizer.step()
 
         return loss, fake
+
+    def generate_distributions(self):
+        _noise = self.dist_latent.sample(sample_shape=(1, self.seq_len, self.g_dim_latent))
+        _noise = _noise.to(self.device)
+
+        real_distribution = self.ds.get_real_distribution()
+        generated_distribution = self.g(_noise,
+                                        self.ds[0][1].float().unsqueeze(0)
+                                        .unsqueeze(2).to(self.device),  # dt
+                                        self.ds[0][0].float().mean().to(self.device)) \
+            .detach().cpu().view(1, -1).numpy()
+
+        # Generate n samples with current form of the g
+        for _stock, _dt in self.ds[1:]:
+            _stock = _stock.float()
+            _dt = _dt.float()
+
+            generated_distribution = np.append(generated_distribution, self.g(_noise,
+                                                                              _dt.unsqueeze(0)
+                                                                              .unsqueeze(2).to(self.device),
+                                                                              # dt
+                                                                              _stock.mean().to(
+                                                                                  self.device))  # mean
+                                               .detach().cpu().view(1, -1).numpy(), axis=0)
+
+        _generated_distribution = np.array(list(map(self.ds.mean_reshape, generated_distribution)))
+        generated_distribution = _generated_distribution
+
+        return real_distribution, generated_distribution
 
     def train_system(self):
         for epoch in range(self.num_epochs):
@@ -109,8 +142,8 @@ class TimeGAN:
                 noise_stock = self.dist_latent.sample(sample_shape=(self.batch_size, self.seq_len, self.g_dim_latent))
                 noise_stock = noise_stock.to(self.device)
 
-                g_iter = 1
-                d_iter = g_iter * 8
+                g_iter = self.g_iter
+                d_iter = self.d_iter
 
                 for var_name in range(g_iter):
                     loss_g, _ = self.train_generator(noise_stock, stock, dt, mean)
@@ -118,11 +151,15 @@ class TimeGAN:
                 for var_name in range(d_iter):
                     loss_d, fake = self.train_discriminator(noise_stock, stock, dt, mean)
 
-                if batch_idx == len(self.dl) - 1:
+                if batch_idx == 0:
                     print(
                         f"Epoch [{epoch}/{self.num_epochs}] Batch {batch_idx}/{len(self.dl)} \
                           Loss D: {loss_d.detach().cpu().item():.4f}, loss G: {loss_g.detach().cpu().item():.4f}"
                     )
+
+                    # Visualize the whole distribution
+                    rd, gd = self.generate_distributions()
+                    fig = visualization_metrics.visualize(gd, rd)
 
                     wandb.log({
                         'epoch': epoch,
@@ -135,7 +172,8 @@ class TimeGAN:
                             '[Conditional (on deltas)] Fake sample'),
                         'Real sample': plot_time_series(
                             stock[0].view(-1).cpu().numpy(),
-                            '[Corresponding] Real sample')
+                            '[Corresponding] Real sample'),
+                        'Distribution': fig
                     })
 
 
@@ -147,7 +185,7 @@ if __name__ == '__main__':
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # run_name = str('RCGAN: {} {} \n'.format(config['run_name'], datetime.datetime.now()) + str(config.values()))
-    run_name = '1g / 8d'
+    run_name = '1g / 16d | G mean condition'
 
     wandb.init(config=config, project='time-gan-2017', name=run_name)
 
