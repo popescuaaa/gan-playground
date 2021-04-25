@@ -98,3 +98,4 @@ if __name__ == '__main__':
     dl = DataLoader(ds, batch_size=10, shuffle=False)
     rd = ds.get_real_distribution()
     print('Real dist: {}'.format(len(rd)))
+    print(type(ds[1:]))

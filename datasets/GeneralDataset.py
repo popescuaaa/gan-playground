@@ -1,5 +1,5 @@
 import numpy as np
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import json
 import torch
@@ -28,25 +28,33 @@ class NIPSDataSet(Dataset):
             self.data = list(filter(lambda t: t.shape[0] == seq_len, self.data))
             self.dt_data = list(filter(lambda t: t.shape[0] == seq_len, self.dt_data))
 
-            self.data = self.data[:len(self.data) - 2]  # size problem
-            self.dt_data = self.dt_data[:len(self.dt_data) - 2]  # size problem
+            self.dt_data = self.dt_data[:(len(self.dt_data) - 3)]
+            self.full_data = [(self.data[i], self.dt_data[i]) for i in range(min(len(self.data), len(self.dt_data)))]
         else:
             exit(-1)
 
     def __len__(self):
-        return len(self.data)
+        return len(self.full_data)
 
     def __getitem__(self, item):
-        return self.data[item], self.dt_data[item]
+        return self.full_data[item]
+
+    def mean_reshape(self, arr: np.array):
+        mean = np.mean(arr)
+        return np.repeat(mean, self.seq_len)
+
+    def get_real_distribution(self):
+        real_distribution = np.array(list(map(lambda t: t.numpy(), self.data)))
+        return np.array(list(map(self.mean_reshape, real_distribution)))
 
 
 class GeneralDataset:
     PATHS = {
-        'electricity': './electricity_nips/train/data.json',
-        'solar': './solar_nips/train/train.json',
-        'traffic': './traffic_nips/train/data.json',
-        'exchange': './exchange_rate_nips/train/train.json',
-        'taxi': './taxi_30min/train/train.json'
+        'electricity': '../datasets/electricity_nips/train/data.json',
+        'solar': '../datasets/solar_nips/train/train.json',
+        'traffic': '../datasets/traffic_nips/train/data.json',
+        'exchange': '../datasets/exchange_rate_nips/train/train.json',
+        'taxi': './datasets//taxi_30min/train/train.json'
     }
 
     def __init__(self, seq_len: int, ds_type: str, model: str):
@@ -64,7 +72,7 @@ class GeneralDataset:
         self.data = pd.DataFrame(self.json_data)
         self.data = self.data.sort_values(by='start')
         self.timestamps = self.data['start']
-        self.values = self.data['target']
+        self.values = self.data['target'].values
 
     def get_dataset(self):
         return NIPSDataSet(seq_len=self.seq_len, data=self.values[0], model=self.model)
@@ -73,3 +81,8 @@ class GeneralDataset:
 if __name__ == '__main__':
     ds_generator = GeneralDataset(150, 'electricity', 'rcgan')
     ds = ds_generator.get_dataset()
+    dl = DataLoader(ds, num_workers=10, batch_size=10, shuffle=True)
+    for idx, e in enumerate(dl):
+        data, dt = e
+        print(data.shape)
+        print(dt.shape)
