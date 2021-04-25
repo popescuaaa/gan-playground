@@ -1,11 +1,13 @@
-run_name: 'APPLE dataset | Mean condition on D | Mean of G | Relativistic GAN loss | Shuffle on data'
-
 system:
   batch_size: 10
   seq_len: 150
   learning_rate: 1e-4
   num_epochs: 100
-  device: 'cuda:1'
+  device: 'cuda:0'
+  num_samples: 100
+  run_name: 'G mean + std condition'
+  dataset: 'electricity'
+  model: 'rcgan'
 
 d:
   d_num_layers: 1
@@ -15,7 +17,7 @@ d:
 
 g:
   g_num_layers: 1
-  g_dim_hidden: 128
+  g_dim_hidden: 32
   g_dim_latent: 128
   g_dim_output: 1
   g_iter: 1
