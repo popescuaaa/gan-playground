@@ -8,7 +8,7 @@ import torch
 class NIPSDataSet(Dataset):
     MODELS = ['timegan', 'rcgan']
 
-    def __init__(self, seq_len, data: np.ndarray, model: str):
+    def __init__(self, seq_len, data: np.ndarray, model: str, offset: int):
         self.seq_len = seq_len
         self.raw_data = data
         self.model = model
@@ -28,7 +28,7 @@ class NIPSDataSet(Dataset):
             self.data = list(filter(lambda t: t.shape[0] == seq_len, self.data))
             self.dt_data = list(filter(lambda t: t.shape[0] == seq_len, self.dt_data))
 
-            self.dt_data = self.dt_data[:(len(self.dt_data) - 3)]
+            self.dt_data = self.dt_data[:(len(self.dt_data) - offset)]
             self.full_data = [(self.data[i], self.dt_data[i]) for i in range(min(len(self.data), len(self.dt_data)))]
         else:
             exit(-1)
@@ -54,13 +54,22 @@ class GeneralDataset:
         'solar': '../datasets/solar_nips/train/train.json',
         'traffic': '../datasets/traffic_nips/train/data.json',
         'exchange': '../datasets/exchange_rate_nips/train/train.json',
-        'taxi': './datasets//taxi_30min/train/train.json'
+        'taxi': '../datasets/taxi_30min/train/train.json'
+    }
+
+    OFFSETS = {
+        'electricity': 3,
+        'solar': 9,
+        'traffic': 1,
+        'exchange': 2,
+        'taxi': 8
     }
 
     def __init__(self, seq_len: int, ds_type: str, model: str):
         self.seq_len = seq_len
         self.ds_type = ds_type
         self.model = model
+        self.offset = self.OFFSETS[ds_type]
         self.json_data = []
         self.path = self.PATHS[self.ds_type]
 
@@ -75,11 +84,11 @@ class GeneralDataset:
         self.values = self.data['target'].values
 
     def get_dataset(self):
-        return NIPSDataSet(seq_len=self.seq_len, data=self.values[0], model=self.model)
+        return NIPSDataSet(seq_len=self.seq_len, data=self.values[0], model=self.model, offset=self.offset)
 
 
 if __name__ == '__main__':
-    ds_generator = GeneralDataset(150, 'electricity', 'rcgan')
+    ds_generator = GeneralDataset(150, 'taxi', 'rcgan')
     ds = ds_generator.get_dataset()
     dl = DataLoader(ds, num_workers=10, batch_size=10, shuffle=True)
     for idx, e in enumerate(dl):
