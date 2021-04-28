@@ -11,13 +11,13 @@ system:
 
 d:
   d_num_layers: 1
-  d_dim_hidden: 16
+  d_dim_hidden: 32
   d_dim_input: 1
   d_iter: 16
 
 g:
   g_num_layers: 1
-  g_dim_hidden: 32
+  g_dim_hidden: 64
   g_dim_latent: 128
   g_dim_output: 1
   g_iter: 1

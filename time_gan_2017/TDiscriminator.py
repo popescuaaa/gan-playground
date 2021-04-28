@@ -14,12 +14,12 @@ class LSTMDiscriminator(nn.Module):
         self.dim_input = dim_input
 
         self.lstm = nn.LSTM(self.dim_input + 1, self.dim_hidden, self.num_layers, batch_first=True)
-        self.linear = nn.Sequential(nn.Linear(self.dim_hidden + 1, 1))
+        self.linear = nn.Sequential(nn.Linear(self.dim_hidden, 1))
 
         self.h_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
         self.c_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
 
-    def forward(self, stock, dt, mean):
+    def forward(self, stock, dt, mean, std):
         batch_size, seq_len = stock.size(0), stock.size(1)
 
         _stock = torch.cat([stock, dt], 2)
@@ -32,9 +32,12 @@ class LSTMDiscriminator(nn.Module):
         # Basically, the output of a lstm also contains a pair (h_n, c_n) last hidden state, last cell state
         recurrent_features, _ = self.lstm(stock, (h_0, c_0))
         recurrent_features = recurrent_features[:, -1, :]
-        mean = mean.repeat(batch_size).view(batch_size, 1)
-        features = torch.cat([mean, recurrent_features.contiguous()], 1)
-        outputs = self.linear(features)
+
+        # mean = mean.repeat(batch_size).view(batch_size, 1)
+        # std = std.repeat(batch_size).view(batch_size, 1)
+
+        #features = torch.cat([recurrent_features.contiguous(), mean, std], 1)
+        outputs = self.linear(recurrent_features)
         return outputs
 
     @property

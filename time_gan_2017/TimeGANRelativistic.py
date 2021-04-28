@@ -13,7 +13,7 @@ import numpy as np
 from plot import plot_time_series
 from sklearn.metrics import mean_absolute_error
 from metrics import visualization_metrics
-from datasets import GeneralDataset
+from _datasets_ import GeneralDataset
 
 
 class TimeGAN:
@@ -78,8 +78,8 @@ class TimeGAN:
 
         fake = self.g(noise_stock, dt, mean, std)
 
-        d_real = self.d(stock, dt, mean)
-        d_fake = self.d(fake, dt, mean)
+        d_real = self.d(stock, dt, mean, std)
+        d_fake = self.d(fake, dt, mean, std)
 
         loss = -torch.log(torch.sigmoid(d_real - d_fake)).mean()
         loss.backward()
@@ -97,8 +97,8 @@ class TimeGAN:
         std = stock.std()
 
         fake = self.g(noise_stock, dt, mean, std)
-        d_fake = self.d(fake, dt, mean)
-        d_real = self.d(stock, dt, mean)
+        d_fake = self.d(fake, dt, mean, std)
+        d_real = self.d(stock, dt, mean, std)
 
         loss = -torch.log(torch.sigmoid(d_fake - d_real)).mean()
         loss.backward()
