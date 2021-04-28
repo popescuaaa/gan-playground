@@ -204,8 +204,8 @@ if __name__ == '__main__':
     time_gan.g = time_gan.g.to('cpu')
     time_gan.d = time_gan.d.to('cpu')
 
-    torch.save(time_gan.g.state_dict(), './trained_models/rcgan_g.pt')
-    torch.save(time_gan.d.state_dict(), './trained_models/rcgan_d.pt')
+    torch.save(time_gan.g.state_dict(), './trained_models/rcgan_g_lp.pt')
+    torch.save(time_gan.d.state_dict(), './trained_models/rcgan_d_lp.pt')
 
     time_gan.g = time_gan.g.to(config['system']['device'])
     time_gan.d = time_gan.d.to(config['system']['device'])

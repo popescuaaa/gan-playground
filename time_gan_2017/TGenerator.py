@@ -30,22 +30,41 @@ class LSTMGenerator(nn.Module):
 
         self.h_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
         self.c_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
+        self._scaling_param = nn.Parameter(torch.tensor([10.0]))
 
-    def forward(self, noise_stock, dt, mean, std):
-        batch_size, seq_len = noise_stock.size(0), noise_stock.size(1)
-        z = torch.cat([noise_stock, dt], 2)
+    def forward(self, noise, dt, mean, std):
+        batch_size, seq_len = noise.size(0), noise.size(1)
+        z = torch.cat([noise, dt], 2)
 
         h_0 = self.h_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
         c_0 = self.c_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
+
+        mean = torch.matmul(self._scaling_param, mean.unsqueeze(0)).squeeze(0)
 
         recurrent_features, _ = self.lstm(z, (h_0, c_0))
         mean = mean.repeat(batch_size * seq_len).view(batch_size, seq_len, 1)
         std = std.repeat(batch_size * seq_len).view(batch_size, seq_len, 1)
         _features = torch.cat([recurrent_features.contiguous(), mean, std], 2)
-
         outputs = self.linear(_features)
         return outputs
 
     @property
     def device(self):
         return next(self.parameters()).device
+
+
+def run_generator_test():
+    g = LSTMGenerator(128, 1)
+
+    noise = torch.randn(size=(10, 150, 128))
+    dt = torch.randn(size=(10, 150, 1))
+    mean = torch.randn(size=(1,))
+    std = torch.randn(size=(1,))
+
+    generated_data = g(noise, dt, mean, std)
+
+    print(generated_data.detach().numpy())
+
+
+if __name__ == '__main__':
+    run_generator_test()
