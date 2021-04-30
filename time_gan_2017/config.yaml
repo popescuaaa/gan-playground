@@ -6,7 +6,8 @@ system:
   device: 'cuda:0'
   num_samples: 100
   run_name: 'G mean + std condition'
-  dataset: 'electricity'
+  dataset: ''
+  datasets: ['electricity', 'taxi', 'solar', 'traffic', 'exchange']
   model: 'rcgan'
 
 d:

@@ -75,7 +75,7 @@ class TimeGAN:
         mean = stock.mean()
         std = stock.std()
 
-        fake = self.g(noise_stock, dt, mean, std)
+        fake = self.g(noise_stock, dt, mean)
 
         d_real = self.d(stock, dt, mean, std)
         d_fake = self.d(fake, dt, mean, std)
@@ -95,7 +95,7 @@ class TimeGAN:
         mean = stock.mean()
         std = stock.std()
 
-        fake = self.g(noise_stock, dt, mean, std)
+        fake = self.g(noise_stock, dt, mean)
         d_fake = self.d(fake, dt, mean, std)
         d_real = self.d(stock, dt, mean, std)
 
@@ -113,8 +113,7 @@ class TimeGAN:
         generated_distribution = self.g(_noise,
                                         self.ds[0][1].float().unsqueeze(0)
                                         .unsqueeze(2).to(self.device),  # dt
-                                        self.ds[0][0].float().mean().to(self.device),
-                                        self.ds[0][0].float().std().to(self.device)) \
+                                        self.ds[0][0].float().mean().to(self.device)) \
             .detach().cpu().view(1, -1).numpy()
 
         # Generate n samples with current form of the g
@@ -126,8 +125,7 @@ class TimeGAN:
                                                                               _dt.unsqueeze(0)
                                                                               .unsqueeze(2).to(self.device),
                                                                               # dt
-                                                                              _real.mean().to(self.device),
-                                                                              _real.std().to(self.device))  # mean
+                                                                              _real.mean().to(self.device))  # mean
                                                .detach().cpu().view(1, -1).numpy(), axis=0)
 
         _generated_distribution = np.array(list(map(self.ds.mean_reshape, generated_distribution)))
@@ -193,19 +191,24 @@ if __name__ == '__main__':
     with open('config.yaml', 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    run_name = config['system']['run_name'] + ' ' + config['system']['dataset'] \
-                + ' bias on linear layer (final) [30/04/2021]'
+    ds_list = config['system']['datasets']
 
-    wandb.init(config=config, project='time-gan-2017', name=run_name)
+    for ds_name in ds_list:
+        config['system']['dataset'] = ds_name
 
-    time_gan = TimeGAN(config)
-    time_gan.train_system()
+        run_name = config['system']['run_name'] + ' ' + config['system']['dataset'] \
+                    + ' bias on linear layer (final) [30/04/2021]'
 
-    time_gan.g = time_gan.g.to('cpu')
-    time_gan.d = time_gan.d.to('cpu')
+        wandb.init(config=config, project='time-gan-2017', name=run_name)
 
-    torch.save(time_gan.g.state_dict(), './trained_models/rcgan_g_bias.pt')
-    torch.save(time_gan.d.state_dict(), './trained_models/rcgan_d_bias.pt')
+        time_gan = TimeGAN(config)
+        time_gan.train_system()
 
-    time_gan.g = time_gan.g.to(config['system']['device'])
-    time_gan.d = time_gan.d.to(config['system']['device'])
+        time_gan.g = time_gan.g.to('cpu')
+        time_gan.d = time_gan.d.to('cpu')
+
+        torch.save(time_gan.g.state_dict(), './trained_models/rcgan_g_bias_{}.pt'.format(ds_name))
+        torch.save(time_gan.d.state_dict(), './trained_models/rcgan_d_bias_{}.pt'.format(ds_name))
+
+        time_gan.g = time_gan.g.to(config['system']['device'])
+        time_gan.d = time_gan.d.to(config['system']['device'])
