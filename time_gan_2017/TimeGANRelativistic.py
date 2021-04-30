@@ -194,7 +194,8 @@ if __name__ == '__main__':
     with open('config.yaml', 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    run_name = config['system']['run_name'] + ' ' + config['system']['dataset']
+    run_name = config['system']['run_name'] + ' ' + config['system']['dataset'] \
+                + ' bias on linear layer (final) [30/04/2021]'
 
     wandb.init(config=config, project='time-gan-2017', name=run_name)
 
@@ -204,8 +205,8 @@ if __name__ == '__main__':
     time_gan.g = time_gan.g.to('cpu')
     time_gan.d = time_gan.d.to('cpu')
 
-    torch.save(time_gan.g.state_dict(), './trained_models/rcgan_g_lp.pt')
-    torch.save(time_gan.d.state_dict(), './trained_models/rcgan_d_lp.pt')
+    torch.save(time_gan.g.state_dict(), './trained_models/rcgan_g_bias.pt')
+    torch.save(time_gan.d.state_dict(), './trained_models/rcgan_d_bias.pt')
 
     time_gan.g = time_gan.g.to(config['system']['device'])
     time_gan.d = time_gan.d.to(config['system']['device'])

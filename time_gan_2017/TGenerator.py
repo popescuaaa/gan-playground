@@ -26,11 +26,10 @@ class LSTMGenerator(nn.Module):
         out = tensor containing the output features (h_t) from the last layer of the LSTM
         '''
         self.lstm = nn.LSTM(self.dim_latent + 1, self.dim_hidden, self.num_layers, batch_first=True)
-        self.linear = nn.Sequential(nn.Linear(self.dim_hidden + 2, self.dim_output))
+        self.linear = nn.Sequential(nn.Linear(self.dim_hidden + 2, self.dim_output, bias=True))
 
         self.h_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
         self.c_0 = nn.Parameter(torch.zeros(1, self.dim_hidden))
-        self._scaling_param = nn.Parameter(torch.tensor([10.0]))
 
     def forward(self, noise, dt, mean, std):
         batch_size, seq_len = noise.size(0), noise.size(1)
@@ -38,8 +37,6 @@ class LSTMGenerator(nn.Module):
 
         h_0 = self.h_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
         c_0 = self.c_0.unsqueeze(0).repeat(batch_size, 1, 1).permute(1, 0, 2)
-
-        mean = torch.matmul(self._scaling_param, mean.unsqueeze(0)).squeeze(0)
 
         recurrent_features, _ = self.lstm(z, (h_0, c_0))
         mean = mean.repeat(batch_size * seq_len).view(batch_size, seq_len, 1)
