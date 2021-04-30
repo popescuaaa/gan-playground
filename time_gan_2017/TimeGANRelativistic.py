@@ -1,6 +1,5 @@
 from TGenerator import LSTMGenerator
 from TDiscriminator import LSTMDiscriminator
-from TDataset import StockDataset
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn as nn
